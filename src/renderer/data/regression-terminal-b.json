@@ -1,0 +1,51 @@
+{
+  "terminal": "TERMINAL-B",
+  "categories": [
+    {
+      "name": "PAYMENTS",
+      "subcategories": [
+        {
+          "name": "CHIP",
+          "tests": [
+            {
+              "id": "TERMINAL-B-PAYMENTS-CHIP-001",
+              "description": "Chip payment — successful transaction",
+              "notes": "Insert card, enter PIN, confirm amount.",
+              "category": "PAYMENTS",
+              "subcategory": "CHIP"
+            }
+          ]
+        },
+        {
+          "name": "MAGNETIC STRIPE",
+          "tests": [
+            {
+              "id": "TERMINAL-B-PAYMENTS-MSR-001",
+              "description": "Magnetic stripe payment — successful",
+              "notes": "Swipe card, verify amount.",
+              "category": "PAYMENTS",
+              "subcategory": "MAGNETIC STRIPE"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RECEIPTS",
+      "subcategories": [
+        {
+          "name": "PRINT",
+          "tests": [
+            {
+              "id": "TERMINAL-B-RECEIPTS-PRINT-001",
+              "description": "Receipt printed after successful payment",
+              "notes": "Verify all fields: amount, date, TID, merchant.",
+              "category": "RECEIPTS",
+              "subcategory": "PRINT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

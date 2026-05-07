@@ -1,0 +1,58 @@
+{
+  "terminal": "TERMINAL-A",
+  "categories": [
+    {
+      "name": "PAYMENTS",
+      "subcategories": [
+        {
+          "name": "CHIP",
+          "tests": [
+            {
+              "id": "TERMINAL-A-PAYMENTS-CHIP-001",
+              "description": "Chip payment — successful transaction",
+              "notes": "Insert card, enter PIN, confirm amount.",
+              "category": "PAYMENTS",
+              "subcategory": "CHIP"
+            },
+            {
+              "id": "TERMINAL-A-PAYMENTS-CHIP-002",
+              "description": "Chip payment — declined transaction",
+              "notes": "Use test card configured for decline.",
+              "category": "PAYMENTS",
+              "subcategory": "CHIP"
+            }
+          ]
+        },
+        {
+          "name": "CONTACTLESS",
+          "tests": [
+            {
+              "id": "TERMINAL-A-PAYMENTS-CONTACTLESS-001",
+              "description": "Contactless payment — successful",
+              "notes": "Tap card, verify transaction accepted.",
+              "category": "PAYMENTS",
+              "subcategory": "CONTACTLESS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CONFIGURATION",
+      "subcategories": [
+        {
+          "name": "GENERAL",
+          "tests": [
+            {
+              "id": "TERMINAL-A-CONFIG-GENERAL-001",
+              "description": "Terminal config loads correctly after update",
+              "notes": "Check config version in admin panel.",
+              "category": "CONFIGURATION",
+              "subcategory": "GENERAL"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
