@@ -1,0 +1,61 @@
+{
+  "name": "qa-release-hub",
+  "version": "0.1.0",
+  "description": "Desktop hub for managing QA deployments",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "type-check": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
+    "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.1.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.35",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  },
+  "build": {
+    "appId": "com.qa-release-hub.app",
+    "productName": "QA Release HUB",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "resources/icon.icns"
+    }
+  }
+}
