@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'react-day-picker/dist/style.css';
+
+/* Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #263548;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #364a62;
+}
+
+/* Select element dark styling */
+select option {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+/* react-day-picker dark theme overrides */
+.rdp-slate {
+  --rdp-cell-size: 36px;
+  --rdp-caption-font-size: 14px;
+  --rdp-accent-color: #06b6d4;
+  --rdp-background-color: rgba(6, 182, 212, 0.12);
+  color: #e2e8f0;
+}
+
+/* Drag region */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
