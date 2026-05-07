@@ -57,11 +57,11 @@ export function MetaForm() {
         </div>
 
         {/* Environment */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">
+        <div className="flex items-center gap-6">
+          <span className="text-xs font-medium text-text-secondary uppercase tracking-wide shrink-0">
             Environment
           </span>
-          <div className="flex items-center gap-6 py-1">
+          <div className="flex items-center gap-6">
             <Checkbox
               label="TEST"
               checked={meta.environmentTest}

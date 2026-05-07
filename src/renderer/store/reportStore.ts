@@ -10,6 +10,7 @@ interface ReportStore {
   setMeta: (patch: Partial<ReportMeta>) => void
   setRawScope: (raw: string) => void
   setChanges: (changes: ParsedChange[]) => void
+  updateChange: (nr: number, patch: Partial<ParsedChange>) => void
   updateChecklist: (nr: number, patch: Partial<ChecklistItem>) => void
   resetReport: () => void
 }
@@ -44,6 +45,14 @@ export const useReportStore = create<ReportStore>((set) => ({
         change: c
       }))
     }),
+
+  updateChange: (nr, patch) =>
+    set((s) => ({
+      changes: s.changes.map((c) => (c.nr === nr ? { ...c, ...patch } : c)),
+      checklist: s.checklist.map((item) =>
+        item.nr === nr ? { ...item, change: { ...item.change, ...patch } } : item
+      )
+    })),
 
   updateChecklist: (nr, patch) =>
     set((s) => ({

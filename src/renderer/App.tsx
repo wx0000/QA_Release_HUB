@@ -7,7 +7,7 @@ import { PageWrapper } from './components/layout/PageWrapper'
 import { MetaForm } from './components/report/MetaForm'
 import { ScopeInput } from './components/report/ScopeInput'
 import { ChangesTable } from './components/report/ChangesTable'
-import { TestChecklist } from './components/report/TestChecklist'
+import { TestCasesTable } from './components/report/TestCasesTable'
 
 // Tab 2 — Deploy Schedule
 import { ScheduleInput } from './components/schedule/ScheduleInput'
@@ -24,7 +24,7 @@ function ReportPage() {
       <MetaForm />
       <ScopeInput />
       <ChangesTable />
-      <TestChecklist />
+      <TestCasesTable />
     </PageWrapper>
   )
 }
