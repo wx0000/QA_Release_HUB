@@ -16,11 +16,11 @@ export function useDraft() {
       checklist,
       savedAt: new Date().toISOString()
     }
-    window.electronAPI.store.set(DRAFT_KEY, draft).catch(() => {})
+    window.electronAPI?.store.set(DRAFT_KEY, draft).catch(() => {})
   }
 
   const loadDraft = async () => {
-    const draft = (await window.electronAPI.store.get(DRAFT_KEY)) as {
+    const draft = (await window.electronAPI?.store.get(DRAFT_KEY)) as {
       meta?: typeof meta
       rawScope?: string
       changes?: typeof changes

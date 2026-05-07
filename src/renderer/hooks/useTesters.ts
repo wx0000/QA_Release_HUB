@@ -6,7 +6,7 @@ export function useTesters() {
   const [testers, setTesters] = useState<string[]>(FALLBACK_TESTERS)
 
   useEffect(() => {
-    window.electronAPI.store
+    window.electronAPI?.store
       .get('config.json')
       .then((config) => {
         const c = config as { testers?: string[] } | null
@@ -20,7 +20,7 @@ export function useTesters() {
     if (!trimmed || testers.includes(trimmed)) return
     const updated = [...testers, trimmed]
     setTesters(updated)
-    window.electronAPI.store
+    window.electronAPI?.store
       .get('config.json')
       .then((config) => {
         const c = (config as Record<string, unknown>) ?? {}
