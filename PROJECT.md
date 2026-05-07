@@ -20,10 +20,13 @@
 10. [Input Data Format — Parsers](#input-data-format--parsers)
 11. [PDF Report Structure](#pdf-report-structure)
 12. [Data Persistence](#data-persistence)
-13. [TODO / Roadmap](#todo--roadmap)
-14. [Changelog](#changelog)
-15. [Architectural Decision Records (ADR)](#architectural-decision-records-adr)
-16. [Acceptance Criteria per Version](#acceptance-criteria-per-version)
+13. [Error Handling Strategy](#error-handling-strategy)
+14. [Testing Strategy](#testing-strategy)
+15. [IPC Channels Contract](#ipc-channels-contract)
+16. [TODO / Roadmap](#todo--roadmap)
+17. [Changelog](#changelog)
+18. [Architectural Decision Records (ADR)](#architectural-decision-records-adr)
+19. [Acceptance Criteria per Version](#acceptance-criteria-per-version)
 
 ---
 
@@ -81,6 +84,7 @@ QAReleaseHUB/
 │   │   ├── ipc/
 │   │   │   ├── pdf.handler.ts              # PDF generation
 │   │   │   ├── store.handler.ts            # JSON read/write
+│   │   │   ├── excel.handler.ts            # Excel generation (openpyxl via Python)
 │   │   │   └── terminalMonitor.handler.ts  # auth + terminal API fetch
 │   │   └── store/
 │   │       └── jsonStore.ts                # JSON file handling in userData
@@ -97,13 +101,12 @@ QAReleaseHUB/
 │   │   │   │   └── Textarea.tsx
 │   │   │   ├── layout/
 │   │   │   │   ├── TitleBar.tsx
-│   │   │   │   ├── TabBar.tsx
+│   │   │   │   ├── Sidebar.tsx
 │   │   │   │   └── PageWrapper.tsx
 │   │   │   ├── report/                     # Tab 1
 │   │   │   │   ├── MetaForm.tsx
 │   │   │   │   ├── ScopeInput.tsx
 │   │   │   │   ├── ChangesTable.tsx
-│   │   │   │   ├── TestChecklist.tsx
 │   │   │   │   ├── TestCasesTable.tsx
 │   │   │   │   └── PdfPreview.tsx
 │   │   │   ├── schedule/                   # Tab 2
@@ -146,6 +149,8 @@ QAReleaseHUB/
 │   │   │   ├── schedule.types.ts
 │   │   │   ├── regression.types.ts
 │   │   │   └── terminalMonitor.types.ts
+│   │   ├── constants/
+│   │   │   └── index.ts                    # all app-wide constants (UPPER_SNAKE_CASE)
 │   │   └── styles/
 │   │       └── globals.css
 ├── electron.vite.config.ts
@@ -156,6 +161,7 @@ QAReleaseHUB/
 ├── .prettierrc
 ├── .gitignore
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── README.md
 └── PROJECT.md
 ```
@@ -189,6 +195,7 @@ QAReleaseHUB/
 After evaluating four dark-mode layout concepts (Obsidian Dark, Slate Pro, Zinc Minimal, Glass Dark), **Slate Pro** was selected as the application's visual design.
 
 **Color palette:**
+
 | Token | Value | Usage |
 |---|---|---|
 | Background primary | `#0f172a` | Main window background |
@@ -208,7 +215,7 @@ After evaluating four dark-mode layout concepts (Obsidian Dark, Slate Pro, Zinc 
 - Top bar per tab: tab title + deployment number tag + auto-save timestamp
 - Content area: metric cards row → section label → data table
 - Footer: action buttons (right-aligned), separated by top border
-- No system window frame — custom `TitleBar` component with macOS-style traffic lights
+- No system window frame — custom `TitleBar` component with traffic light controls
 
 **Rationale:** Sidebar navigation scales better than top tabs as the app grows (settings, history in v0.7+). The navy blue base (`#0f172a`) with cyan accent provides strong contrast for status badges (PASS/FAIL/SKIP, update pipeline states) without the visual noise of glass/blur effects.
 
@@ -217,6 +224,7 @@ After evaluating four dark-mode layout concepts (Obsidian Dark, Slate Pro, Zinc 
 ## Conventions
 
 ### Commit messages (Conventional Commits)
+
 ```
 feat(parser): add Type B schedule support
 feat(report): implement test checklist
@@ -231,14 +239,29 @@ test(parser): edge case — schedule without Type B substeps
 ```
 
 ### Naming conventions
-- React components: `PascalCase.tsx`
-- Hooks: `useCamelCase.ts`
-- Utilities: `camelCase.ts`
-- Types/interfaces: `PascalCase`
-- Constants: `UPPER_SNAKE_CASE`
-- Tests: `*.test.ts` next to the tested file
+
+| Thing | Convention | Example |
+|-------|-----------|---------|
+| React components | PascalCase.tsx | `MonitorTable.tsx` |
+| Hooks | useCamelCase.ts | `useDraft.ts` |
+| Utilities / helpers | camelCase.ts | `scopeParser.ts` |
+| Types / interfaces | PascalCase | `DeviceUpdate`, `IpcResult` |
+| Constants | UPPER_SNAKE_CASE | `AUTO_REFRESH_INTERVALS` |
+| IPC channels | domain:action | `monitor:login` |
+| Event handlers | handle + Noun | `handleParseScope` |
+| Test files | alongside source | `scopeParser.test.ts` |
+
+### Code rules
+
+- Zero `any` in TypeScript — use `unknown` and narrow, or define the type
+- No hardcoded values used in more than one place — extract to `src/renderer/constants/index.ts`
+- Components: max 200 lines — if approaching 180, extract a subcomponent or hook
+- Every new business logic module (parser, generator, helper) = matching `.test.ts` file
+- No `// this function does X` comments — names must explain intent
+- `npm run lint` and `npm run type-check` must pass after every session
 
 ### Branching
+
 ```
 main          — stable releases (tags v0.x.0)
 dev           — active development
@@ -257,7 +280,12 @@ Format: `MAJOR.MINOR.PATCH` (Semantic Versioning)
 - `PATCH` — bugfix, minor UX improvement
 
 Git tags: `v0.1.0`, `v0.2.0` etc.
-Each release → update `CHANGELOG.md` + Git tag + `npm version`.
+
+Each release:
+1. Update `CHANGELOG.md`
+2. Run `npm version minor` (or `patch`)
+3. Create Git tag
+4. Update roadmap status in `PROJECT.md` and `CLAUDE.md`
 
 ---
 
@@ -289,7 +317,7 @@ npm run package      # package to .exe
 | Deployment number | Input | Fixed prefix `R_01.00.` + field `XX` + fixed suffix `.00` |
 | Date from | DatePicker | Calendar popup attached to field |
 | Date to | DatePicker | Calendar popup attached to field |
-| Environment | Checkboxes | TEST and/or STAGE |
+| Environment | Checkboxes | TEST and/or STAGE — displayed inline to the right of the label |
 | Tester | Dropdown + Input | Presets from config.json + ability to add new |
 
 #### 1B. Scope input (ScopeInput)
@@ -303,17 +331,7 @@ Columns: `No` | `Component` | `Version` | `Type` | `Change description` | `Ticke
 - Auto-populated from parser, inline editable
 - `MOD`/`FIX` type highlighted with colored badge
 
-#### 1D. Test checklist (TestChecklist) — sub-feature of Tab 1
-- Visible section below/beside table 1C
-- Per each row from 1C — automatic checklist row:
-  - "Checked" checkbox
-  - Label: `[TYPE] Component — Description (Ticket)`
-  - Text field: "Test note" (what and how to check)
-- Progress bar: `Checked X / Y`
-- **"Generate checklist PDF"** button — separate document
-- Notes available as hint in "Current result" editor
-
-#### 1E. "Test cases" table (TestCasesTable)
+#### 1D. "Test cases" table (TestCasesTable)
 Columns: `No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Current result` | `Result`
 - No→Ticket: copied 1:1 from 1C
 - `Result`: always "POSITIVE", locked
@@ -322,13 +340,11 @@ Columns: `No` | `Component` | `Version` | `Type` | `Change description` | `Ticke
   - Ctrl+V → inline screenshot from clipboard
   - Drag & drop image
   - "📎 Add image" button → file picker
-  - Hint from test note (1D)
 
-#### 1F. PDF generation
+#### 1E. PDF generation
 - **"Generate report PDF"** button → save dialog → toast + "Open file"
-- **"Generate checklist PDF"** button → separate file
 
-#### 1G. Auto-save
+#### 1F. Auto-save
 - Every 30s → `userData/drafts/current.json`
 - On startup: dialog "Draft detected. Load it?"
 
@@ -397,7 +413,7 @@ JSON format mirrors Excel structure (categories → subcategories → test cases
 **JSON structure:**
 ```typescript
 interface RegressionTestCase {
-  id: string;              // unique, e.g. "TERMINAL-A-CATEGORY-001"
+  id: string;              // unique, e.g. "TERMINAL-A-PAYMENTS-001"
   description: string;     // test case content
   notes?: string;          // how-to hint (tooltip)
   category: string;        // e.g. "PAYMENTS"
@@ -479,13 +495,13 @@ Query parameters:
 #### Update status pipeline
 Each package passes through the following statuses (`status[]` array in response, sorted descending — `status[0]` = current):
 
-| Status | Color | Meaning for tester |
-|---|---|---|
-| `added` | ⚪ gray | Dispatch requested — nothing yet |
-| `generating` | 🟠 orange | Package being generated on server |
-| `ready` | 🟡 yellow | Package ready — waiting for terminal to download |
-| `downloading` | 🔵 blue | Terminal is downloading |
-| `downloaded` | 🟢 green | Terminal downloaded — **ready to test** |
+| Status | Color | Tailwind class | Meaning for tester |
+|---|---|---|---|
+| `added` | ⚪ gray | `bg-gray-100 text-gray-600` | Dispatch requested — nothing yet |
+| `generating` | 🟠 orange | `bg-orange-100 text-orange-800` | Package being generated on server |
+| `ready` | 🟡 yellow | `bg-yellow-100 text-yellow-800` | Package ready — waiting for terminal to download |
+| `downloading` | 🔵 blue | `bg-blue-100 text-blue-800` | Terminal is downloading |
+| `downloaded` | 🟢 green | `bg-green-100 text-green-800` | Terminal downloaded — **ready to test** |
 
 #### 5A. Connection configuration (MonitorAuth)
 - Collapsible config panel (remembers expanded state)
@@ -664,21 +680,6 @@ QA Release HUB  |  Deployment R_01.00.46.00  |  Page X / Y
 
 ---
 
-### Checklist PDF (separate document)
-
-```
-TEST CHECKLIST — R_01.00.46.00
-Tester: Tester A  |  Date: 2026-05-04
-─────────────────────────────────────────
-[ ] MOD | ComponentA v3.3.14 | PROJ-1001
-    Note: Check HTTP cache — F12 → Network → response headers.
-
-[ ] FIX | ComponentA v3.3.14 | PROJ-1002
-    Note: Deactivate object, move it, search for it.
-```
-
----
-
 ## Data Persistence
 
 ### `userData/config.json`
@@ -700,7 +701,7 @@ Tester: Tester A  |  Date: 2026-05-04
 > ⚠️ The terminal API password is **never** saved in `config.json` or any file. Stored exclusively in RAM (Zustand) for the duration of the session.
 
 ### `userData/drafts/current.json`
-Full report form state — serialized every 30s.
+Full report form state — serialized every 30s. TipTap images serialized as base64.
 
 ### `userData/history/index.json`
 ```json
@@ -722,6 +723,134 @@ Full report form state — serialized every 30s.
 
 ---
 
+## Error Handling Strategy
+
+### IPC result type — always used, no exceptions
+
+Every IPC handler returns this shape. Never throw raw errors across the IPC boundary.
+
+```typescript
+type IpcResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; code: IpcErrorCode }
+
+type IpcErrorCode =
+  | 'AUTH_EXPIRED'
+  | 'AUTH_FAILED'
+  | 'NETWORK_ERROR'
+  | 'NOT_FOUND'
+  | 'VALIDATION_ERROR'
+  | 'UNKNOWN'
+```
+
+### Zustand stores
+
+Every store that performs async operations includes:
+```typescript
+isLoading: boolean
+error: string | null
+```
+Reset `error` to `null` on new request. Set on failure.
+
+### React error boundaries
+
+Each tab is wrapped in an `<ErrorBoundary>` component. One tab crashing does not affect others.
+
+### UI error presentation
+
+| Error type | UI treatment |
+|-----------|-------------|
+| Non-blocking (copy failed, refresh failed) | Toast notification, auto-dismiss |
+| Blocking (auth failed, data load failed) | Inline error with retry button |
+| Auth expired (401) | "Session expired" banner + "Log in again" button |
+| Not found (404) | Inline message in the affected section |
+| Network timeout | Inline message with retry + connection hint |
+
+### Terminal monitor specific error codes
+
+- `401` → `AUTH_EXPIRED` → show login prompt, do not retry automatically
+- `404` → `NOT_FOUND` → show "Terminal ID not found"
+- timeout → `NETWORK_ERROR` → show "Connection failed — check Base URL"
+- Token value must **never** appear in error messages, console logs, or any file
+
+---
+
+## Testing Strategy
+
+### Scope — what we unit test
+
+| Module | Test file | Coverage required |
+|--------|-----------|------------------|
+| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, plain ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), ignored suffix, all type values (MOD/FIX), all status values |
+| `scheduleParser.ts` | `scheduleParser.test.ts` | Type A detection, Type B detection, Roman numeral parsing, person extraction from Type B, duration parsing, notes extraction |
+| `pdfGenerator` helpers | `pdfGenerator.test.ts` | date range formatting, deployment number formatting |
+| Terminal monitor helpers | `terminalMonitor.helpers.test.ts` | BSC.* version extraction logic, `status[0]` current status rule, file size formatting (bytes → KB/MB) |
+
+### What we do NOT unit test
+
+- React components — no renderer test setup in this project
+- IPC handlers — require Electron runtime, tested manually against acceptance criteria
+- PDF output — tested manually
+- Excel output — tested manually
+- Zustand stores — integration-level concerns, not unit-tested
+
+### Test format — table-driven for all parsers
+
+```typescript
+describe('scopeParser', () => {
+  const cases = [
+    {
+      desc: 'extracts PROJ ticket from markdown link',
+      input: '   * MOD - Fix cache [PROJ-1234](https://example.com) Done',
+      expected: { type: 'MOD', ticket: 'PROJ-1234', status: 'Done' }
+    },
+    {
+      desc: 'extracts PROJ ticket from plain brackets',
+      input: '   * FIX - Something [PROJ-5678]',
+      expected: { type: 'FIX', ticket: 'PROJ-5678', status: '' }
+    },
+    {
+      desc: 'handles missing ticket gracefully',
+      input: '   * MOD - Something without ticket Done',
+      expected: { ticket: '', status: 'Done' }
+    },
+    {
+      desc: 'normalizes version v.X.Y to vX.Y',
+      input: '* ComponentA v.2.6.1',
+      expected: { version: 'v2.6.1' }
+    },
+  ]
+
+  test.each(cases)('$desc', ({ input, expected }) => {
+    expect(parseScope(input)).toMatchObject(expected)
+  })
+})
+```
+
+### Pure function rule
+
+Parsers and helpers must be pure functions (no IPC, no side effects). If a helper needs IPC to work, extract its logic into a pure function and test that. Never mock `ipcRenderer` in unit tests.
+
+---
+
+## IPC Channels Contract
+
+Central registry. Add new channels here when creating new handlers.
+
+| Channel | Payload type | Response type | Handler file |
+|---------|-------------|---------------|--------------|
+| `pdf:generate-report` | `ReportData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
+| `pdf:generate-checklist` | `ChecklistData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
+| `store:get` | `{key: string}` | `IpcResult<unknown>` | `store.handler.ts` |
+| `store:set` | `{key: string; data: unknown}` | `IpcResult<void>` | `store.handler.ts` |
+| `monitor:login` | `{baseUrl: string; login: string; password: string}` | `IpcResult<{token: string}>` | `terminalMonitor.handler.ts` |
+| `monitor:fetch-updates` | `MonitorQueryParams` | `IpcResult<DeviceUpdatesResponse>` | `terminalMonitor.handler.ts` |
+| `excel:generate-regression` | `RegressionExportData` | `IpcResult<{path: string}>` | `excel.handler.ts` |
+
+**Channel naming convention:** `domain:action` — lowercase, colon separator, no spaces.
+
+---
+
 ## TODO / Roadmap
 
 ### v0.1.0 — Foundation & Layout
@@ -735,21 +864,19 @@ Full report form state — serialized every 30s.
 - [ ] MetaForm — all fields
 - [ ] DatePicker — calendar popup
 
-### v0.2.0 — Parser + Tables
-- [ ] scopeParser.ts + Vitest tests
-- [ ] ScopeInput: textarea + Parse + error alert
-- [ ] ChangesTable: auto from parser, inline editable
-- [ ] TestChecklist: auto from parser, notes, checkbox, progress bar
-- [ ] TestCasesTable: columns No→Ticket, Result=POSITIVE
+### v0.2.0 — Parser + Tables ✅
+- [x] MetaForm layout fix: TEST/STAGE checkboxes inline right of "Environment" label
+- [x] scopeParser.ts + Vitest tests
+- [x] ScopeInput: textarea + Parse + error alert
+- [x] ChangesTable: auto from parser, inline editable
+- [x] TestCasesTable: columns No→Ticket, Result=POSITIVE
 
 ### v0.3.0 — Rich Text + PDF
 - [ ] TipTap in "Current result"
 - [ ] Ctrl+V inline screenshot
 - [ ] Image drag & drop
 - [ ] "Add image" file picker
-- [ ] Test note hint
 - [ ] pdfGenerator: main report
-- [ ] pdfGenerator: test checklist
 - [ ] Save dialog + toast + "Open file"
 - [ ] Auto-save + load dialog on startup
 
@@ -815,11 +942,23 @@ Full report form state — serialized every 30s.
 
 ## Changelog
 
-### [Unreleased] — dev
+### [0.2.0] — 2026-05-07
+- MetaForm: TEST/STAGE checkboxes inline right of Environment label
+- ScopeInput: textarea + Parse button + unparsed-lines warning
+- ChangesTable: all columns inline editable, type shown as colored badge-select
+- TestCasesTable: read-only mirror of ChangesTable + Current result textarea + POSITIVE badge
+- reportStore: added `updateChange` action
+- Removed TestChecklist from Tab 1 (duplicated Tab 3 regression feature)
+- IPC channels standardized: `store:get` / `store:set`; renderer pattern: `window.electronAPI`
+
+### [0.1.0] — 2026-05-07
 - Project initialization
 - PROJECT.md — full documentation of architecture, parsers, roadmap
+- CLAUDE.md — session protocol and working memory created
+- Full v0.1.0 scaffold: Electron main, preload, React renderer, all layout components, UI primitives, MetaForm, Zustand stores, parsers, CI
 - Added Tab 5: Terminal Update Monitor (ADR-009, ADR-010, ADR-011)
 - ADR-012: Slate Pro dark layout selected as UI design
+- ADR-013: Error handling strategy formalized (IpcResult type, error codes)
 
 ---
 
@@ -843,7 +982,7 @@ Ready-made main+renderer config, HMR, TypeScript out of the box.
 Tab 2 without persistence — one-time per release, history not needed.
 
 ### ADR-006: Auto-detect schedule format (Type A / Type B)
-Developers send different formats. Rule: first line matches `/^[IVX]+\./` → Type A, otherwise Type B.
+Developers send different formats. Rule: first non-empty line matches `/^[IVX]+\./` → Type A, otherwise Type B.
 
 ### ADR-007: Regression data as JSON in repository (not loaded from Excel)
 Test cases stored as versioned JSON files in the repo, not loaded from Excel at startup.
@@ -869,13 +1008,19 @@ Trade-off: additional IPC layer — acceptable, consistent with rest of architec
 
 ### ADR-011: Current package status = status[0] (first array element)
 API returns `status[]` array sorted descending by date — first element is the current package state.
-This rule is explicit in code as a constant/comment, not a magic index.
+This rule is explicit in code as a named constant/comment, not a magic index.
 
 ### ADR-012: Slate Pro dark layout as UI design
 After evaluating four dark-mode layout concepts, Slate Pro was selected.
 Key parameters: background `#0f172a`, cards `#1e293b`, accent `#06b6d4` (cyan), left sidebar navigation.
-Reason: sidebar scales better than top tabs as the app grows; navy base provides strong contrast for status badges without glass/blur complexity; closest to a professional QA tooling aesthetic.
-Trade-off: slightly more complex initial layout implementation vs. top-tab alternatives — acceptable given long-term ergonomic benefit.
+Reason: sidebar scales better than top tabs as the app grows; navy base provides strong contrast for status badges without glass/blur complexity.
+Trade-off: slightly more complex initial layout implementation — acceptable given long-term ergonomic benefit.
+
+### ADR-013: IpcResult<T> as universal IPC error contract
+All IPC handlers return `IpcResult<T>` — never throw raw errors across the IPC boundary.
+Error codes are typed (`IpcErrorCode`) so renderer can handle specific cases (e.g. `AUTH_EXPIRED` → show login prompt).
+Reason: consistent error handling across all modules, typed error codes prevent string-matching hacks in UI.
+Trade-off: slightly more boilerplate in handlers — acceptable, eliminates entire class of unhandled error bugs.
 
 ---
 
@@ -889,13 +1034,12 @@ Trade-off: slightly more complex initial layout implementation vs. top-tab alter
 - [ ] `npm run lint` + `npm run type-check` → zero errors
 - [ ] GitHub: repo, min. 5 conventional commits, README.md
 
-### v0.2.0 — DONE when:
-- [ ] Pasting scope → correct table after Parse
-- [ ] Parser: markdown link, plain ticket, no ticket, "(from iteration)" suffix, `v.X.Y`
-- [ ] `npm run test` → green
-- [ ] Checklist generated from components table
-- [ ] Checkbox + progress bar work
-- [ ] TestCasesTable: No→Ticket matches table 1, Result=POSITIVE
+### v0.2.0 — DONE ✅
+- [x] MetaForm: TEST/STAGE checkboxes displayed inline right of "Environment" label
+- [x] Pasting scope → correct table after Parse
+- [x] Parser: markdown link, plain ticket, no ticket, "(from iteration)" suffix, `v.X.Y`
+- [x] `npm run test` → green
+- [x] TestCasesTable: No→Ticket matches table 1, Result=POSITIVE
 
 ### v0.3.0 — DONE when:
 - [ ] Text can be typed in "Current result"
@@ -903,7 +1047,6 @@ Trade-off: slightly more complex initial layout implementation vs. top-tab alter
 - [ ] "Generate report PDF" → file on disk
 - [ ] PDF: header, both tables, summary, footer with page numbers
 - [ ] Images visible in PDF
-- [ ] "Generate checklist PDF" → separate file
 - [ ] Auto-save: draft saved, dialog on restart
 
 ### v0.4.0 — DONE when:
@@ -941,5 +1084,5 @@ Trade-off: slightly more complex initial layout implementation vs. top-tab alter
 
 ---
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-07*
 *Project: QA Release HUB*
