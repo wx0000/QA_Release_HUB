@@ -74,6 +74,20 @@ describe('scopeParser — status recognition', () => {
 // ---------------------------------------------------------------------------
 // Version normalization
 // ---------------------------------------------------------------------------
+describe('scopeParser — component line format', () => {
+  const cases = [
+    { desc: 'with bullet: * ComponentA v1.0.0', line: '* ComponentA v1.0.0' },
+    { desc: 'no bullet: ComponentA v1.0.0', line: 'ComponentA v1.0.0' },
+    { desc: 'no bullet with build suffix: ComponentA v1.0.0 (build: 20260414081619989)', line: 'ComponentA v1.0.0 (build: 20260414081619989)' }
+  ]
+
+  test.each(cases)('$desc', ({ line }) => {
+    const { changes } = parseScope(`${line}\n   * MOD - Desc Done`)
+    expect(changes[0].component).toBe('ComponentA')
+    expect(changes[0].version).toBe('v1.0.0')
+  })
+})
+
 describe('scopeParser — version normalization', () => {
   const cases = [
     { desc: 'v. prefix stripped', raw: 'v.2.6.1', expected: 'v2.6.1' },

@@ -1,6 +1,6 @@
 import type { ParsedChange, ChangeType, ChangeStatus } from '../../types/report.types'
 
-const COMPONENT_RE = /^\* (.+?) (v\.?[\d.]+)/
+const COMPONENT_RE = /^\*?\s*(.+?) (v\.?[\d.]+)/
 const CHANGE_RE = /^\s+\* (MOD|FIX) - (.+)/
 const TICKET_MARKDOWN_RE = /\[([A-Z]+-\d+)\]\(https?:\/\/[^)]+\)/
 const TICKET_PLAIN_RE = /\[([A-Z]+-\d+)\]/
