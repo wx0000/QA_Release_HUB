@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** scopeParser hardening ✅ — bare ticket, In Progress/Documentation status, Polish suffix, skip non-change lines; 21 tests green
+- **Last completed:** TitleBar version automation ✅ — `__APP_VERSION__` Vite define wired to `package.json`; single source of truth
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -339,6 +339,12 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-08 — TitleBar version automation
+- **`electron.vite.config.ts`:** reads `version` from `package.json` via `readFileSync`; injects as `__APP_VERSION__` global via `renderer.define`
+- **`electron.d.ts`:** declared `const __APP_VERSION__: string` inside `declare global` (module-file scoping requirement)
+- **`TitleBar.tsx`:** replaced hardcoded `"v0.3.0"` with `v{__APP_VERSION__}`
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
+
 ### 2026-05-08 — scopeParser hardening
 - **`ChangeStatus`:** added `'In Progress'` and `'Documentation'` to type + `STATUS_TOKENS` + `ChangesTable` `STATUS_OPTIONS`
 - **Bare ticket:** added `TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/` as 3rd fallback after markdown and bracketed forms
@@ -411,5 +417,5 @@ These took time to figure out — don't re-solve them:
 
 ---
 
-_Last updated: 2026-05-07_
+_Last updated: 2026-05-08_
 _Project: QA Release HUB_

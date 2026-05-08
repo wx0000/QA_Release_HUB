@@ -28,7 +28,7 @@ export function TitleBar() {
       <div className="flex-1 flex items-center gap-2 px-4">
         <span className="text-accent font-bold text-sm tracking-wide">QA</span>
         <span className="text-text-primary font-semibold text-sm">Release HUB</span>
-        <span className="text-text-muted text-xs ml-1">v0.1.0</span>
+        <span className="text-text-muted text-xs ml-1">v{__APP_VERSION__}</span>
       </div>
 
       {/* Windows-style controls */}
