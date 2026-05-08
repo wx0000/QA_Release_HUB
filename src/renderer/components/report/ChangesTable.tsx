@@ -6,7 +6,7 @@ const TYPE_CLASSES: Record<ChangeType, string> = {
   FIX: 'bg-status-warning/10 text-status-warning border-status-warning/30'
 }
 
-const STATUS_OPTIONS: ChangeStatus[] = ['Done', 'In Review', 'Waiting for test', '']
+const STATUS_OPTIONS: ChangeStatus[] = ['Done', 'In Review', 'In Progress', 'Waiting for test', 'Documentation', '']
 
 const CELL_INPUT =
   'w-full bg-transparent text-text-primary text-sm px-1 py-0.5 rounded ' +

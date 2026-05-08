@@ -8,7 +8,7 @@ export interface ReportMeta {
 }
 
 export type ChangeType = 'MOD' | 'FIX'
-export type ChangeStatus = 'Done' | 'In Review' | 'Waiting for test' | ''
+export type ChangeStatus = 'Done' | 'In Review' | 'In Progress' | 'Waiting for test' | 'Documentation' | ''
 
 export interface ParsedChange {
   nr: number

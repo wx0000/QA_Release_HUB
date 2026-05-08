@@ -567,19 +567,24 @@ One row = one update package:
 * Component vX.Y.Z (optional suffix)
    * TYPE - Description [PROJ-XXXX](https://...) Status
    * TYPE - Description [PROJ-XXXX] Status
+   * TYPE - Description PROJ-XXXX Status
 ```
 
 **Rules:**
 1. `* Component vX.Y.Z` → new component
    - Regex: `/^\* (.+?) (v\.?[\d.]+)/`
    - Normalization: `v.2.6.1` → `v2.6.1`
-   - Suffix `(from iteration R_...)` → ignored
+   - Suffix `(from iteration R_...)` or `(z iteracji R_...)` → ignored
 2. `   * TYPE - ...` → change
    - Type: `MOD` or `FIX`
-   - Markdown ticket `[PROJ-XXXX](url)` → `PROJ-XXXX`
-   - Plain ticket `[PROJ-XXXX]` → `PROJ-XXXX`
+   - Ticket forms (tried in order):
+     1. Markdown: `[PROJ-XXXX](url)` → `PROJ-XXXX`
+     2. Bracketed: `[PROJ-XXXX]` → `PROJ-XXXX`
+     3. Bare: `PROJ-XXXX` (any `[A-Z]+-\d+` token) → `PROJ-XXXX`
    - No ticket → `""`
-   - Status (last token): `Done` | `In Review` | `Waiting for test` | `""`
+   - Status (last token): `Done` | `In Review` | `In Progress` | `Waiting for test` | `Documentation` | `""`
+   - Lines that are neither component headers nor MOD/FIX → silently skipped
+   - MOD/FIX line with no component context → `unparsedLines[]`
 
 **Output type:**
 ```typescript
@@ -590,7 +595,7 @@ interface ParsedChange {
   type: 'MOD' | 'FIX';
   changeDescription: string;
   ticket: string;
-  status: 'Done' | 'In Review' | 'Waiting for test' | '';
+  status: 'Done' | 'In Review' | 'In Progress' | 'Waiting for test' | 'Documentation' | '';
 }
 ```
 
@@ -781,7 +786,7 @@ Each tab is wrapped in an `<ErrorBoundary>` component. One tab crashing does not
 
 | Module | Test file | Coverage required |
 |--------|-----------|------------------|
-| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, plain ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), ignored suffix, all type values (MOD/FIX), all status values |
+| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, bracketed ticket, bare ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), English + Polish ignored suffix, all type values (MOD/FIX), all 5 status values, skip non-change lines, orphan MOD/FIX → unparsedLines |
 | `scheduleParser.ts` | `scheduleParser.test.ts` | Type A detection, Type B detection, Roman numeral parsing, person extraction from Type B, duration parsing, notes extraction |
 | `pdfGenerator` helpers | `pdfGenerator.test.ts` | date range formatting, deployment number formatting |
 | Terminal monitor helpers | `terminalMonitor.helpers.test.ts` | BSC.* version extraction logic, `status[0]` current status rule, file size formatting (bytes → KB/MB) |

@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** v0.3.0B ✅ — pdfGenerator pipeline: pdfmake v0.3.x in renderer, save dialog in main, "Generate report PDF" button + toast
+- **Last completed:** scopeParser hardening ✅ — bare ticket, In Progress/Documentation status, Polish suffix, skip non-change lines; 21 tests green
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -329,6 +329,7 @@ These took time to figure out — don't re-solve them:
 - **pdfmake v0.3.x setup:** use `pdfMake.addVirtualFileSystem(vfsFonts)` (not `pdfMake.vfs = ...` from v0.2.x). Fonts load from `pdfmake/build/vfs_fonts` as base64 dict — pass directly, no Buffer conversion needed. API is Promise-based: `.getBase64()`, `.getBuffer()`.
 - **PDF generation architecture:** renderer builds pdfmake doc + generates base64 → sends to main via `pdf:generate-report` IPC → main runs `dialog.showSaveDialog` + `fs.writeFile`. Never generate in main (no font bundling there).
 - **TipTap images in auto-save:** serialize editor content to base64 before writing to `userData/drafts/current.json` — raw blob URLs don't survive serialization
+- **ChangeStatus values (all 5):** `'Done'` | `'In Review'` | `'In Progress'` | `'Waiting for test'` | `'Documentation'` — keep STATUS_TOKENS, STATUS_OPTIONS, and ChangeStatus type in sync
 - **Schedule parser Type A detection:** check FIRST non-empty line only against `/^[IVX]+\./` — not all lines
 - **Ticket extraction:** strip markdown link syntax — `[PROJ-1234](https://...)` → `PROJ-1234`, NOT the full markdown string
 - **Electron userData path:** use `app.getPath('userData')` in main process — never hardcode paths
@@ -337,6 +338,14 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-08 — scopeParser hardening
+- **`ChangeStatus`:** added `'In Progress'` and `'Documentation'` to type + `STATUS_TOKENS` + `ChangesTable` `STATUS_OPTIONS`
+- **Bare ticket:** added `TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/` as 3rd fallback after markdown and bracketed forms
+- **Polish suffix:** `IGNORED_SUFFIX_RE` now covers `(z iteracji ...)` alongside existing `(from iteration ...)`
+- **Line skipping:** non-MOD/FIX lines silently skipped; only MOD/FIX without component context → `unparsedLines`
+- **Tests:** full table-driven rewrite — 18 cases across 6 `describe` blocks (tickets, statuses, version, suffix, skipping, multi-component); total 21 tests green
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (21/21)
 
 ### 2026-05-08 — v0.3.0B — pdfGenerator pipeline (COMPLETE)
 - **Architecture:** pdfmake runs in renderer (Chromium); renderer generates base64 PDF → main process saves via `dialog.showSaveDialog` + `fs.writeFile`

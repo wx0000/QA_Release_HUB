@@ -4,8 +4,15 @@ const COMPONENT_RE = /^\* (.+?) (v\.?[\d.]+)/
 const CHANGE_RE = /^\s+\* (MOD|FIX) - (.+)/
 const TICKET_MARKDOWN_RE = /\[([A-Z]+-\d+)\]\(https?:\/\/[^)]+\)/
 const TICKET_PLAIN_RE = /\[([A-Z]+-\d+)\]/
-const STATUS_TOKENS: ChangeStatus[] = ['Done', 'In Review', 'Waiting for test']
-const IGNORED_SUFFIX_RE = /\(from iteration .+?\)/i
+const TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/
+const STATUS_TOKENS: ChangeStatus[] = [
+  'Done',
+  'In Review',
+  'In Progress',
+  'Waiting for test',
+  'Documentation'
+]
+const IGNORED_SUFFIX_RE = /\((from iteration|z iteracji)\s+[^)]+\)/i
 
 export interface ScopeParseResult {
   changes: ParsedChange[]
@@ -33,7 +40,12 @@ export function parseScope(raw: string): ScopeParseResult {
     }
 
     const changeMatch = line.match(CHANGE_RE)
-    if (changeMatch && currentComponent) {
+    if (changeMatch) {
+      if (!currentComponent) {
+        unparsedLines.push(trimmed)
+        continue
+      }
+
       const type = changeMatch[1] as ChangeType
       let rest = changeMatch[2]
 
@@ -43,10 +55,16 @@ export function parseScope(raw: string): ScopeParseResult {
         ticket = mdTicket[1]
         rest = rest.replace(mdTicket[0], '').trim()
       } else {
-        const plainTicket = rest.match(TICKET_PLAIN_RE)
-        if (plainTicket) {
-          ticket = plainTicket[1]
-          rest = rest.replace(plainTicket[0], '').trim()
+        const bracketTicket = rest.match(TICKET_PLAIN_RE)
+        if (bracketTicket) {
+          ticket = bracketTicket[1]
+          rest = rest.replace(bracketTicket[0], '').trim()
+        } else {
+          const bareTicket = rest.match(TICKET_BARE_RE)
+          if (bareTicket) {
+            ticket = bareTicket[1]
+            rest = rest.replace(bareTicket[0], '').trim()
+          }
         }
       }
 
@@ -71,9 +89,7 @@ export function parseScope(raw: string): ScopeParseResult {
       continue
     }
 
-    if (trimmed.startsWith('*')) {
-      unparsedLines.push(trimmed)
-    }
+    // All other lines silently skipped
   }
 
   return { changes, unparsedLines }
