@@ -10,6 +10,9 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   renderer: {
+    optimizeDeps: {
+      include: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts']
+    },
     root: 'src/renderer',
     resolve: {
       alias: {
