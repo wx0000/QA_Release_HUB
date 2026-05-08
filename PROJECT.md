@@ -947,6 +947,16 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [0.3.0] — 2026-05-08
+- pdfmake v0.3.8 PDF generation pipeline: renderer builds doc + base64, main saves via dialog
+- reportTemplate.ts: full pdfmake doc — header, Section 1 (changes table), Section 2 (test cases), Section 3 (summary), page footer
+- pdfGenerator.ts: `createPdfBase64(docDef) → Promise<string>` wrapper
+- pdf.handler.ts: IPC handler with save dialog + fs.writeFile + IpcResult typed returns
+- PdfPreview.tsx: "Generate report PDF" button + inline success/error status
+- ReportData type added; electron.d.ts + preload updated for new signature
+- TitleBar: version now derived from package.json via `__APP_VERSION__` Vite define
+- package.json bumped to 0.3.0
+
 ### [0.2.0] — 2026-05-07
 - MetaForm: TEST/STAGE checkboxes inline right of Environment label
 - ScopeInput: textarea + Parse button + unparsed-lines warning

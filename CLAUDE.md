@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** TitleBar version automation ✅ — `__APP_VERSION__` Vite define wired to `package.json`; single source of truth
+- **Last completed:** package.json version bump ✅ — was stuck at `0.1.0`; bumped to `0.3.0` so `__APP_VERSION__` resolves correctly in TitleBar
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -338,6 +338,11 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-08 — package.json version bump
+- **Root cause:** `package.json` `version` field was `0.1.0` — never bumped despite completing v0.2.0 and v0.3.0B sessions
+- **Fix:** bumped to `0.3.0`; `__APP_VERSION__` Vite define now resolves to the correct value
+- **Commit:** `chore: bump version to 0.3.0 in package.json`
 
 ### 2026-05-08 — TitleBar version automation
 - **`electron.vite.config.ts`:** reads `version` from `package.json` via `readFileSync`; injects as `__APP_VERSION__` global via `renderer.define`
