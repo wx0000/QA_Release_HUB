@@ -63,7 +63,7 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
 
       <div className="px-4 py-3 border-t border-border">
         <p className="text-[10px] text-text-muted">QA Release HUB</p>
-        <p className="text-[10px] text-text-muted opacity-60">v0.1.0 — Foundation</p>
+        <p className="text-[10px] text-text-muted opacity-60">v{__APP_VERSION__}</p>
       </div>
     </aside>
   )
