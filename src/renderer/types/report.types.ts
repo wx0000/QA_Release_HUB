@@ -45,3 +45,9 @@ export interface ReportDraft {
   checklist: ChecklistItem[]
   savedAt: string
 }
+
+export interface ReportData {
+  meta: ReportMeta
+  changes: ParsedChange[]
+  testResults?: Record<number, string> // nr → currentResult text (v0.3.0A+)
+}

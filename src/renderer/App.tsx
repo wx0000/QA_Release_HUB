@@ -8,6 +8,7 @@ import { MetaForm } from './components/report/MetaForm'
 import { ScopeInput } from './components/report/ScopeInput'
 import { ChangesTable } from './components/report/ChangesTable'
 import { TestCasesTable } from './components/report/TestCasesTable'
+import { PdfPreview } from './components/report/PdfPreview'
 
 // Tab 2 — Deploy Schedule
 import { ScheduleInput } from './components/schedule/ScheduleInput'
@@ -25,6 +26,7 @@ function ReportPage() {
       <ScopeInput />
       <ChangesTable />
       <TestCasesTable />
+      <PdfPreview />
     </PageWrapper>
   )
 }

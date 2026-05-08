@@ -18,9 +18,9 @@
 
 ## Current Status
 
-- **Version in dev:** v0.2.0
-- **Last completed:** v0.2.0 ✅ — type-check + lint + tests all green
-- **Next concrete task:** v0.3.0 — TipTap in "Current result", Ctrl+V screenshot, image drag & drop, pdfGenerator main report, save dialog + toast, auto-save + load dialog
+- **Version in dev:** v0.3.0
+- **Last completed:** v0.3.0B ✅ — pdfGenerator pipeline: pdfmake v0.3.x in renderer, save dialog in main, "Generate report PDF" button + toast
+- **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
@@ -248,7 +248,7 @@ Central registry of all IPC channels. Add new channels here when creating new ha
 
 | Channel | Direction | Payload type | Response type | Handler file |
 |---------|-----------|--------------|---------------|--------------|
-| `pdf:generate-report` | renderer→main | `ReportData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
+| `pdf:generate-report` | renderer→main | `{pdfBase64: string; defaultFilename: string}` | `IpcResult<{path: string\|null}>` | `pdf.handler.ts` |
 | `pdf:generate-checklist` | renderer→main | `ChecklistData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
 | `store:get` | renderer→main | `{key: string}` | `IpcResult<unknown>` | `store.handler.ts` |
 | `store:set` | renderer→main | `{key: string; data: unknown}` | `IpcResult<void>` | `store.handler.ts` |
@@ -257,6 +257,28 @@ Central registry of all IPC channels. Add new channels here when creating new ha
 | `excel:generate-regression` | renderer→main | `RegressionExportData` | `IpcResult<{path: string}>` | `excel.handler.ts` |
 
 **Channel naming convention:** `domain:action` — lowercase, colon separator, no spaces.
+
+---
+
+## Types & Store Quick Reference
+
+> Avoids opening `report.types.ts` / `reportStore.ts` just to confirm field names.
+
+### `report.types.ts` — key shapes
+
+| Type | Fields |
+|------|--------|
+| `ReportMeta` | `deploymentSuffix`, `dateFrom`, `dateTo`, `environmentTest`, `environmentStage`, `tester` |
+| `ParsedChange` | `nr`, `component`, `version`, `type` (MOD\|FIX), `changeDescription`, `ticket`, `status` |
+| `ChecklistItem` | `nr`, `checked`, `note`, `change` (ParsedChange ref) |
+| `TestCaseResult` | `nr`, `component`, `version`, `type`, `changeDescription`, `ticket`, `currentResult`, `result` |
+| `ReportDraft` | `meta`, `rawScope`, `changes`, `checklist`, `savedAt` |
+
+### `reportStore` — actions
+
+`setMeta(patch)` · `setRawScope(raw)` · `setChanges(changes)` · `updateChange(nr, patch)` · `updateChecklist(nr, patch)` · `resetReport()`
+
+> `setChanges` auto-builds `checklist[]` from `changes[]`. `updateChange` syncs both arrays.
 
 ---
 
@@ -304,6 +326,8 @@ These took time to figure out — don't re-solve them:
 - **status[0] = current status:** API returns `status[]` sorted descending — first element is current (ADR-011). This is a named constant in code, not a magic index.
 - **BSC.* file extraction:** App version = `nativeVersion` from file where `fileParameterName.startsWith('BSC.')` — NOT the first file in array, NOT every file
 - **DatePicker positioning:** popup must be attached to the field (relative positioning), not `position: fixed` — fixed breaks inside scrollable containers
+- **pdfmake v0.3.x setup:** use `pdfMake.addVirtualFileSystem(vfsFonts)` (not `pdfMake.vfs = ...` from v0.2.x). Fonts load from `pdfmake/build/vfs_fonts` as base64 dict — pass directly, no Buffer conversion needed. API is Promise-based: `.getBase64()`, `.getBuffer()`.
+- **PDF generation architecture:** renderer builds pdfmake doc + generates base64 → sends to main via `pdf:generate-report` IPC → main runs `dialog.showSaveDialog` + `fs.writeFile`. Never generate in main (no font bundling there).
 - **TipTap images in auto-save:** serialize editor content to base64 before writing to `userData/drafts/current.json` — raw blob URLs don't survive serialization
 - **Schedule parser Type A detection:** check FIRST non-empty line only against `/^[IVX]+\./` — not all lines
 - **Ticket extraction:** strip markdown link syntax — `[PROJ-1234](https://...)` → `PROJ-1234`, NOT the full markdown string
@@ -313,6 +337,19 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-08 — v0.3.0B — pdfGenerator pipeline (COMPLETE)
+- **Architecture:** pdfmake runs in renderer (Chromium); renderer generates base64 PDF → main process saves via `dialog.showSaveDialog` + `fs.writeFile`
+- **pdfmake v0.3.8 installed** — API changed from v0.2.x: `addVirtualFileSystem(vfsFonts)` for font setup; `.getBase64()` / `.getBuffer()` return Promises
+- **`reportTemplate.ts`:** full pdfmake doc definition — header block, Section 1 (7-col changes table), Section 2 (8-col test cases, `testResults` wired for v0.3.0A), Section 3 (summary), footer with page numbers
+- **`pdfGenerator.ts`:** `createPdfBase64(docDef) → Promise<string>` — thin wrapper around pdfmake
+- **`pdf.handler.ts`:** full IPC handler — save dialog, `fs.writeFile`, `IpcResult` typed returns
+- **`PdfPreview.tsx`:** "Generate report PDF" button + inline success/error status; graceful no-op in browser preview
+- **`report.types.ts`:** added `ReportData { meta, changes, testResults? }`
+- **`electron.d.ts` + `preload/index.ts`:** updated `pdf.generateReport` signature to `(pdfBase64, defaultFilename)`
+- **App.tsx:** `<PdfPreview />` added to ReportPage
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (8/8)
+- **Known limitation:** `currentResult` cells in Section 2 are blank until v0.3.0A (TipTap) wires `testResults` into store
 
 ### 2026-05-07 — v0.2.0 (COMPLETE)
 - **MetaForm:** TEST/STAGE checkboxes now inline to the right of the "Environment" label

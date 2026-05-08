@@ -16,7 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // PDF generation
   pdf: {
-    generateReport: (data: unknown) => ipcRenderer.invoke('pdf:generate-report', data),
+    generateReport: (pdfBase64: string, defaultFilename: string) =>
+      ipcRenderer.invoke('pdf:generate-report', pdfBase64, defaultFilename),
     generateChecklist: (data: unknown) => ipcRenderer.invoke('pdf:generate-checklist', data)
   },
 

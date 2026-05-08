@@ -11,8 +11,11 @@ interface ElectronAPI {
   }
 
   pdf: {
-    generateReport: (data: unknown) => Promise<{ success: boolean; path?: string; error?: string }>
-    generateChecklist: (data: unknown) => Promise<{ success: boolean; path?: string; error?: string }>
+    generateReport: (
+      pdfBase64: string,
+      defaultFilename: string
+    ) => Promise<{ success: boolean; data?: { path: string | null }; error?: string }>
+    generateChecklist: (data: unknown) => Promise<{ success: boolean; error?: string }>
   }
 
   terminalMonitor: {

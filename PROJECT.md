@@ -839,7 +839,7 @@ Central registry. Add new channels here when creating new handlers.
 
 | Channel | Payload type | Response type | Handler file |
 |---------|-------------|---------------|--------------|
-| `pdf:generate-report` | `ReportData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
+| `pdf:generate-report` | `{pdfBase64: string; defaultFilename: string}` | `IpcResult<{path: string\|null}>` | `pdf.handler.ts` |
 | `pdf:generate-checklist` | `ChecklistData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
 | `store:get` | `{key: string}` | `IpcResult<unknown>` | `store.handler.ts` |
 | `store:set` | `{key: string; data: unknown}` | `IpcResult<void>` | `store.handler.ts` |
@@ -876,8 +876,8 @@ Central registry. Add new channels here when creating new handlers.
 - [ ] Ctrl+V inline screenshot
 - [ ] Image drag & drop
 - [ ] "Add image" file picker
-- [ ] pdfGenerator: main report
-- [ ] Save dialog + toast + "Open file"
+- [x] pdfGenerator: main report
+- [x] Save dialog + toast
 - [ ] Auto-save + load dialog on startup
 
 ### v0.4.0 — Schedule (Tab 2)
@@ -965,8 +965,9 @@ Central registry. Add new channels here when creating new handlers.
 ## Architectural Decision Records (ADR)
 
 ### ADR-001: pdfmake instead of Puppeteer
-Does not require Chromium, works in Electron main process, native tables + base64 images.
+Does not require Chromium, native tables + base64 images.
 Trade-off: less flexible layout — acceptable for a tabular report.
+**Implementation note (v0.3.0B):** pdfmake runs in the renderer (Chromium environment) — font bundling in the main process proved unnecessarily complex. Renderer calls `createPdf(docDef).getBase64()`, sends base64 to main, main handles `dialog.showSaveDialog` + `fs.writeFile`. Version: pdfmake v0.3.x (Promise-based API, `addVirtualFileSystem` for fonts).
 
 ### ADR-002: JSON instead of SQLite
 Scale does not justify SQLite. Simpler debugging, zero native dependencies.
@@ -1044,8 +1045,8 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 ### v0.3.0 — DONE when:
 - [ ] Text can be typed in "Current result"
 - [ ] Ctrl+V pastes screenshot inline
-- [ ] "Generate report PDF" → file on disk
-- [ ] PDF: header, both tables, summary, footer with page numbers
+- [x] "Generate report PDF" → file on disk
+- [x] PDF: header, both tables, summary, footer with page numbers
 - [ ] Images visible in PDF
 - [ ] Auto-save: draft saved, dialog on restart
 
