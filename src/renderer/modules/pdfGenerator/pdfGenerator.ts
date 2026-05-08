@@ -1,9 +1,10 @@
-import * as pdfMake from 'pdfmake/build/pdfmake'
-import vfsFonts from 'pdfmake/build/vfs_fonts'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces'
 
-pdfMake.addVirtualFileSystem(vfsFonts)
-
-export function createPdfBase64(docDefinition: TDocumentDefinitions): Promise<string> {
+export async function createPdfBase64(docDefinition: TDocumentDefinitions): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfMake = (await import('pdfmake/build/pdfmake' as string)) as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vfsFonts = (await import('pdfmake/build/vfs_fonts' as string)) as any
+  pdfMake.addVirtualFileSystem(vfsFonts)
   return pdfMake.createPdf(docDefinition).getBase64()
 }
