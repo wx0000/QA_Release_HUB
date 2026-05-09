@@ -6,12 +6,14 @@ interface ReportStore {
   rawScope: string
   changes: ParsedChange[]
   checklist: ChecklistItem[]
+  testResults: Record<number, string>
 
   setMeta: (patch: Partial<ReportMeta>) => void
   setRawScope: (raw: string) => void
   setChanges: (changes: ParsedChange[]) => void
   updateChange: (nr: number, patch: Partial<ParsedChange>) => void
   updateChecklist: (nr: number, patch: Partial<ChecklistItem>) => void
+  setTestResult: (nr: number, content: string) => void
   resetReport: () => void
 }
 
@@ -30,6 +32,7 @@ export const useReportStore = create<ReportStore>((set) => ({
   rawScope: '',
   changes: [],
   checklist: [],
+  testResults: {},
 
   setMeta: (patch) =>
     set((s) => ({ meta: { ...s.meta, ...patch } })),
@@ -44,7 +47,8 @@ export const useReportStore = create<ReportStore>((set) => ({
         checked: false,
         note: '',
         change: c
-      }))
+      })),
+      testResults: {},
     }),
 
   updateChange: (nr, patch) =>
@@ -62,6 +66,9 @@ export const useReportStore = create<ReportStore>((set) => ({
       )
     })),
 
+  setTestResult: (nr, content) =>
+    set((s) => ({ testResults: { ...s.testResults, [nr]: content } })),
+
   resetReport: () =>
-    set({ meta: DEFAULT_META, rawScope: '', changes: [], checklist: [] })
+    set({ meta: DEFAULT_META, rawScope: '', changes: [], checklist: [], testResults: {} })
 }))

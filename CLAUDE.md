@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** Definition of Done updated ✅ — added mandatory "Code review" step (security, quality, conventions) before commit message
+- **Last completed:** TipTap modal "Current result" ✅ — ResultEditorModal (Bold/Italic, Ctrl+V, file picker, drag&drop, base64), testResults w store, TestCasesTable przebudowana na preview + modal
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -272,7 +272,7 @@ Central registry of all IPC channels. Add new channels here when creating new ha
 
 | Type | Fields |
 |------|--------|
-| `ReportMeta` | `deploymentSuffix`, `dateFrom`, `dateTo`, `environmentTest`, `environmentStage`, `tester` |
+| `ReportMeta` | `deploymentSuffix`, `dateFrom`, `dateTo`, `environmentTest`, `environmentStage`, `tester`, `vendor` |
 | `ParsedChange` | `nr`, `component`, `version`, `type` (MOD\|FIX), `changeDescription`, `ticket`, `status` |
 | `ChecklistItem` | `nr`, `checked`, `note`, `change` (ParsedChange ref) |
 | `TestCaseResult` | `nr`, `component`, `version`, `type`, `changeDescription`, `ticket`, `currentResult`, `result` |
@@ -280,9 +280,9 @@ Central registry of all IPC channels. Add new channels here when creating new ha
 
 ### `reportStore` — actions
 
-`setMeta(patch)` · `setRawScope(raw)` · `setChanges(changes)` · `updateChange(nr, patch)` · `updateChecklist(nr, patch)` · `resetReport()`
+`setMeta(patch)` · `setRawScope(raw)` · `setChanges(changes)` · `updateChange(nr, patch)` · `updateChecklist(nr, patch)` · `setTestResult(nr, content)` · `resetReport()`
 
-> `setChanges` auto-builds `checklist[]` from `changes[]`. `updateChange` syncs both arrays.
+> `setChanges` auto-builds `checklist[]` from `changes[]` and resets `testResults`. `updateChange` syncs both arrays. `setTestResult` stores TipTap JSON string keyed by row `nr`.
 
 ---
 
@@ -342,6 +342,22 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-10 — TipTap modal "Current result" (v0.3.0A)
+- **`package.json`:** `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
+- **`reportStore.ts`:** added `testResults: Record<number, string>` + `setTestResult(nr, content)`; `setChanges` resets `testResults` on re-parse; `resetReport` clears `testResults`
+- **`ResultEditorModal.tsx`** (nowy): TipTap editor z Bold/Italic toolbar, Ctrl+V paste obrazów, file picker (jpg/jpeg/png), drag&drop; obrazy serializowane jako base64 data URI; Escape i klik poza → zamknięcie bez zapisu
+- **`TestCasesTable.tsx`:** usunięto lokalny `useState` na currentResults; kolumna "Current result" → klikalny preview (`extractPreview` z TipTap JSON); modal renderowany via React Fragment poza tabelą
+- **Checks:** `npm run type-check` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** `npm run dev:browser` → kliknięcie w "Current result" otwiera modal Slate Pro; Bold/Italic działa; upload obrazu przez picker; Escape zamyka bez zapisu; Save → preview widoczny w komórce ✅
+
+### 2026-05-10 — Vendor field + ticket hyperlinks
+- **`report.types.ts`:** `ReportMeta` extended with `vendor: string`
+- **`reportStore.ts`:** `DEFAULT_META` updated with `vendor: ''`
+- **`MetaForm.tsx`:** new Vendor `Input` field (placeholder "np. firma"), persisted to store via `setMeta`
+- **`ChangesTable.tsx`:** added `vendor` selector (`state.meta.vendor`); Ticket cell renders as `<a href>` with `text-accent underline` when both `vendor` and `ticket` non-empty — falls back to editable `<input>` otherwise
+- **Checks:** `npm run type-check` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** `npm run dev:browser` → pole Vendor widoczne w MetaForm, wpisanie vendora → tickety w ChangesTable renderują się jako klikalne linki; brak vendora → zwykły input ✅
 
 ### 2026-05-09 — Definition of Done: code review step
 - **`CLAUDE.md`:** added `Code review` as mandatory checklist item in Definition of Done — review all session changes for security, quality, and project conventions before preparing commit message

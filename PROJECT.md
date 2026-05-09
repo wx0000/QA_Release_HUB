@@ -877,10 +877,10 @@ Central registry. Add new channels here when creating new handlers.
 - [x] TestCasesTable: columns No→Ticket, Result=POSITIVE
 
 ### v0.3.0 — Rich Text + PDF
-- [ ] TipTap in "Current result"
-- [ ] Ctrl+V inline screenshot
-- [ ] Image drag & drop
-- [ ] "Add image" file picker
+- [x] TipTap in "Current result"
+- [x] Ctrl+V inline screenshot
+- [x] Image drag & drop
+- [x] "Add image" file picker
 - [x] pdfGenerator: main report
 - [x] Save dialog + toast
 - [ ] Auto-save + load dialog on startup
@@ -954,6 +954,17 @@ Central registry. Add new channels here when creating new handlers.
 - `useDraft.ts`: useEffect missing `[]` fixed — interval was resetting on every render, autosave never fired; `saveDraft` now uses `useReportStore.getState()` instead of stale closure
 - Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
 - Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
+
+### [feat] — 2026-05-10 (v0.3.0A — TipTap modal)
+- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
+- `reportStore`: added `testResults: Record<number, string>` + `setTestResult`; `setChanges` resets `testResults`; `resetReport` clears `testResults`
+- `ResultEditorModal.tsx` (new): TipTap editor, Bold/Italic toolbar, Ctrl+V image paste, file picker, drag&drop; images as base64 data URIs; Escape/click-outside closes without saving
+- `TestCasesTable.tsx`: replaced local `useState` textarea with click-to-open preview cell + modal
+
+### [feat] — 2026-05-10
+- `ReportMeta` extended with `vendor: string`; `DEFAULT_META` updated
+- MetaForm: new Vendor input field, persisted to store
+- ChangesTable: ticket cell renders as hyperlink (`text-accent underline`) when both `vendor` and `ticket` are non-empty; falls back to plain editable input otherwise
 
 ### [docs] — 2026-05-09
 - PROJECT.md audit: v0.1.0 roadmap items and Acceptance Criteria marked `[x]` / `✅` (were left unchecked since project start)
@@ -1076,8 +1087,8 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [x] TestCasesTable: No→Ticket matches table 1, Result=POSITIVE
 
 ### v0.3.0 — DONE when:
-- [ ] Text can be typed in "Current result"
-- [ ] Ctrl+V pastes screenshot inline
+- [x] Text can be typed in "Current result"
+- [x] Ctrl+V pastes screenshot inline
 - [x] "Generate report PDF" → file on disk
 - [x] PDF: header, both tables, summary, footer with page numbers
 - [ ] Images visible in PDF
