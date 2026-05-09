@@ -103,7 +103,7 @@ export function ChangesTable() {
                         href={`https://www.${vendor}.com/issue/${c.ticket}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="font-mono text-sm text-accent underline px-1"
+                        className="font-mono text-xs text-accent underline px-1"
                       >
                         {c.ticket}
                       </a>
