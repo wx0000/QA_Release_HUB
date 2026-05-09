@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** package.json version bump ✅ — was stuck at `0.1.0`; bumped to `0.3.0` so `__APP_VERSION__` resolves correctly in TitleBar
+- **Last completed:** scopeParser lookahead ✅ — component headers no longer require a version; detected by lookahead at next MOD/FIX line; 30/30 tests green
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -338,6 +338,17 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-09 — scopeParser lookahead header detection
+- **`scopeParser.ts`:** replaced COMPONENT_RE-based header detection with lookahead — a line is a component header iff the next non-empty line matches `CHANGE_START_RE` (`/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`); COMPONENT_RE retained for optional version extraction
+- **No version case:** lines without a version token → `currentComponent = trimmed` (bullet stripped), `currentVersion = ''`
+- **`scopeParser.test.ts`:** added `scopeParser — component header without version` describe block — 2 new cases (header+MOD/FIX → recognized with `version=''`; lone header → silently skipped); total 27 scope tests, 30 overall
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (30/30)
+- **Commit:** `feat(parser): detect component headers by lookahead instead of requiring a version`
+
+### 2026-05-08 — TabBar version fix
+- **`TabBar.tsx`:** replaced hardcoded `v0.1.0 — Foundation` with `v{__APP_VERSION__}` — both title bar and sidebar now update automatically from `package.json`
+- **Checks:** `npm run type-check` ✅
 
 ### 2026-05-08 — package.json version bump
 - **Root cause:** `package.json` `version` field was `0.1.0` — never bumped despite completing v0.2.0 and v0.3.0B sessions

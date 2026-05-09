@@ -571,8 +571,8 @@ One row = one update package:
 ```
 
 **Rules:**
-1. `* Component vX.Y.Z` → new component
-   - Regex: `/^\* (.+?) (v\.?[\d.]+)/`
+1. A line is a component header if the **next non-empty line** starts with `MOD` or `FIX` (matches `/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`).
+   - Version is optional: if the line contains `vX.Y.Z` (regex `/^\*?\s*(.+?) (v\.?[\d.]+)/`), it is extracted; otherwise `version = ""`.
    - Normalization: `v.2.6.1` → `v2.6.1`
    - Suffix `(from iteration R_...)` or `(z iteracji R_...)` → ignored
 2. `   * TYPE - ...` → change
@@ -786,7 +786,7 @@ Each tab is wrapped in an `<ErrorBoundary>` component. One tab crashing does not
 
 | Module | Test file | Coverage required |
 |--------|-----------|------------------|
-| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, bracketed ticket, bare ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), English + Polish ignored suffix, all type values (MOD/FIX), all 5 status values, skip non-change lines, orphan MOD/FIX → unparsedLines |
+| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, bracketed ticket, bare ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), English + Polish ignored suffix, all type values (MOD/FIX), all 5 status values, skip non-change lines, orphan MOD/FIX → unparsedLines, component header without version (lookahead detection) |
 | `scheduleParser.ts` | `scheduleParser.test.ts` | Type A detection, Type B detection, Roman numeral parsing, person extraction from Type B, duration parsing, notes extraction |
 | `pdfGenerator` helpers | `pdfGenerator.test.ts` | date range formatting, deployment number formatting |
 | Terminal monitor helpers | `terminalMonitor.helpers.test.ts` | BSC.* version extraction logic, `status[0]` current status rule, file size formatting (bytes → KB/MB) |
@@ -947,6 +947,10 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [0.3.0] — 2026-05-09 (patch)
+- scopeParser: component headers now detected by lookahead (next non-empty line is MOD/FIX); version optional — lines without version produce `version: ""`
+- scopeParser tests: +2 cases for versionless header; 30 tests total
+
 ### [0.3.0] — 2026-05-08
 - pdfmake v0.3.8 PDF generation pipeline: renderer builds doc + base64, main saves via dialog
 - reportTemplate.ts: full pdfmake doc — header, Section 1 (changes table), Section 2 (test cases), Section 3 (summary), page footer
@@ -1100,5 +1104,5 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 
 ---
 
-*Last updated: 2026-05-07*
+*Last updated: 2026-05-09*
 *Project: QA Release HUB*
