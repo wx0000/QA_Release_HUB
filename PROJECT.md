@@ -947,6 +947,9 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [docs] — 2026-05-09
+- CLAUDE.md Definition of Done: added mandatory "Code review" step (security, quality, project conventions) before commit message
+
 ### [fix] — 2026-05-09
 - `useDraft.ts`: useEffect missing `[]` fixed — interval was resetting on every render, autosave never fired; `saveDraft` now uses `useReportStore.getState()` instead of stale closure
 - Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes

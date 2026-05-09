@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** Zustand selectors + useDraft fix ✅ — all 5 report components use per-field selectors; useDraft useEffect `[]` fixed + stale closure replaced with `getState()`; `Tested manually:` added to session protocol and all log entries
+- **Last completed:** Definition of Done updated ✅ — added mandatory "Code review" step (security, quality, conventions) before commit message
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -104,6 +104,7 @@ A task is complete when ALL of these pass:
 - [ ] `npm run test` → green
 - [ ] CLAUDE.md updated (current status + session log)
 - [ ] Tested manually: UI golden path verified, recorded in Session Log
+- [ ] Code review: przejrzyj wszystkie zmiany tej sesji pod kątem bezpieczeństwa, jakości i zgodności z konwencjami projektu przed przygotowaniem commit message
 - [ ] Conventional commit message prepared
 
 ---
@@ -341,6 +342,10 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-09 — Definition of Done: code review step
+- **`CLAUDE.md`:** added `Code review` as mandatory checklist item in Definition of Done — review all session changes for security, quality, and project conventions before preparing commit message
+- **Tested manually:** n/a (docs only)
 
 ### 2026-05-09 — Zustand selectors + useDraft fix
 - **`useDraft.ts`:** useEffect missing `[]` fixed (interval was resetting every render → autosave never fired); `saveDraft` now uses `useReportStore.getState()` instead of stale closure values; setters selected via individual selectors
