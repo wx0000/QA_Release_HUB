@@ -15,6 +15,7 @@ const CELL_INPUT =
 export function ChangesTable() {
   const changes = useReportStore(state => state.changes)
   const updateChange = useReportStore(state => state.updateChange)
+  const vendor = useReportStore(state => state.meta.vendor)
 
   if (changes.length === 0) {
     return (
@@ -97,11 +98,22 @@ export function ChangesTable() {
                   </td>
 
                   <td className="px-2 py-1.5">
-                    <input
-                      value={c.ticket}
-                      onChange={(e) => updateChange(c.nr, { ticket: e.target.value })}
-                      className={`${CELL_INPUT} font-mono`}
-                    />
+                    {c.ticket && vendor ? (
+                      <a
+                        href={`https://www.${vendor}.com/issue/${c.ticket}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-sm text-accent underline px-1"
+                      >
+                        {c.ticket}
+                      </a>
+                    ) : (
+                      <input
+                        value={c.ticket}
+                        onChange={(e) => updateChange(c.nr, { ticket: e.target.value })}
+                        className={`${CELL_INPUT} font-mono`}
+                      />
+                    )}
                   </td>
 
                   <td className="px-2 py-1.5">

@@ -5,6 +5,7 @@ export interface ReportMeta {
   environmentTest: boolean
   environmentStage: boolean
   tester: string
+  vendor: string
 }
 
 export type ChangeType = 'MOD' | 'FIX'

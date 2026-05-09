@@ -21,7 +21,8 @@ const DEFAULT_META: ReportMeta = {
   dateTo: '',
   environmentTest: false,
   environmentStage: false,
-  tester: ''
+  tester: '',
+  vendor: ''
 }
 
 export const useReportStore = create<ReportStore>((set) => ({

@@ -132,6 +132,14 @@ export function MetaForm() {
             </div>
           )}
         </div>
+
+        {/* Vendor */}
+        <Input
+          label="Vendor"
+          placeholder="np. firma"
+          value={meta.vendor}
+          onChange={(e) => setMeta({ vendor: e.target.value })}
+        />
       </div>
 
       {/* Deployment number preview */}
