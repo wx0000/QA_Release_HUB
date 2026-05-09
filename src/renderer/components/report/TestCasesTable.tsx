@@ -34,6 +34,7 @@ export function TestCasesTable() {
   const changes = useReportStore(state => state.changes)
   const testResults = useReportStore(state => state.testResults)
   const setTestResult = useReportStore(state => state.setTestResult)
+  const vendor = useReportStore(state => state.meta.vendor)
   const [openModalFor, setOpenModalFor] = useState<number | null>(null)
 
   if (changes.length === 0) {
@@ -92,8 +93,19 @@ export function TestCasesTable() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-text-primary">{c.changeDescription}</td>
-                      <td className="px-3 py-2 text-text-primary font-mono text-xs">
-                        {c.ticket || <span className="text-text-muted">—</span>}
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {c.ticket && vendor ? (
+                          <a
+                            href={`https://www.${vendor}.com/issue/${c.ticket}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-accent underline text-xs"
+                          >
+                            {c.ticket}
+                          </a>
+                        ) : (
+                          <span className="font-mono text-xs">{c.ticket || '—'}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1.5">
                         <button

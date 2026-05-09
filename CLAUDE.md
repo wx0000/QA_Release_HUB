@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** TipTap modal "Current result" ✅ — ResultEditorModal (Bold/Italic, Ctrl+V, file picker, drag&drop, base64), testResults w store, TestCasesTable przebudowana na preview + modal
+- **Last completed:** ticket hyperlinks w TestCasesTable ✅ — vendor selektor + `<a href>` identyczny jak w ChangesTable; fallback ticket w ChangesTable z `<input>` na read-only `<span>`
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -342,6 +342,16 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-10 — ticket hyperlinks w TestCasesTable + ChangesTable fallback
+- **`TestCasesTable.tsx`:** dodano `vendor = useReportStore(state => state.meta.vendor)`; kolumna Ticket renderuje `<a href>` z `text-accent underline` gdy vendor+ticket, `<span>` gdy puste — identycznie jak ChangesTable
+- **`ChangesTable.tsx`:** fallback kolumny Ticket zmieniony z edytowalnego `<input>` na read-only `<span className="font-mono text-xs">{c.ticket || '—'}</span>`
+- **Checks:** `npm run type-check` ✅
+- **Tested manually:** n/a (wizualna zmiana — weryfikowalna po wpisaniu vendora w MetaForm)
+
+### 2026-05-10 — ticket link font size fix
+- **`ChangesTable.tsx`:** ticket hyperlink klasa zmieniona z `text-sm` na `text-xs` (zgodnie ze specem)
+- **Tested manually:** n/a (1-linia CSS, wizualnie weryfikowalne w tabeli)
 
 ### 2026-05-10 — TipTap modal "Current result" (v0.3.0A)
 - **`package.json`:** `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed

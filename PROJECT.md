@@ -955,6 +955,11 @@ Central registry. Add new channels here when creating new handlers.
 - Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
 - Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
 
+### [fix] — 2026-05-10
+- TestCasesTable: vendor selector + ticket hyperlink (identyczny jak ChangesTable)
+- ChangesTable: ticket fallback `<input>` → read-only `<span>`
+- ChangesTable: ticket hyperlink font size `text-sm` → `text-xs`
+
 ### [feat] — 2026-05-10 (v0.3.0A — TipTap modal)
 - `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
 - `reportStore`: added `testResults: Record<number, string>` + `setTestResult`; `setChanges` resets `testResults`; `resetReport` clears `testResults`

@@ -108,11 +108,7 @@ export function ChangesTable() {
                         {c.ticket}
                       </a>
                     ) : (
-                      <input
-                        value={c.ticket}
-                        onChange={(e) => updateChange(c.nr, { ticket: e.target.value })}
-                        className={`${CELL_INPUT} font-mono`}
-                      />
+                      <span className="font-mono text-xs">{c.ticket || '—'}</span>
                     )}
                   </td>
 
