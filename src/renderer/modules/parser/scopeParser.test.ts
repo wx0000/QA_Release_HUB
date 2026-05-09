@@ -148,6 +148,63 @@ describe('scopeParser — line skipping', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Bulletless change lines
+// ---------------------------------------------------------------------------
+describe('scopeParser — bulletless change lines', () => {
+  const cases = [
+    {
+      desc: 'bare MOD with bare ticket and Done',
+      input: `* ComponentA v1.0.0\nMOD - Fix something BEN-1234 Done`,
+      expected: { type: 'MOD', ticket: 'BEN-1234', status: 'Done', changeDescription: 'Fix something' }
+    },
+    {
+      desc: 'bare FIX with bare ticket and In Progress',
+      input: `* ComponentA v1.0.0\nFIX - Another thing BEN-5678 In Progress`,
+      expected: { type: 'FIX', ticket: 'BEN-5678', status: 'In Progress', changeDescription: 'Another thing' }
+    },
+    {
+      desc: 'bare MOD with no ticket and no status',
+      input: `* ComponentA v1.0.0\nMOD - Plain change`,
+      expected: { type: 'MOD', ticket: '', status: '', changeDescription: 'Plain change' }
+    }
+  ]
+
+  test.each(cases)('$desc', ({ input, expected }) => {
+    const { changes } = parseScope(input)
+    expect(changes).toHaveLength(1)
+    expect(changes[0]).toMatchObject(expected)
+  })
+
+  test('bulletless MOD before any component goes to unparsedLines', () => {
+    const { changes, unparsedLines } = parseScope('MOD - Orphan BEN-1234 Done')
+    expect(changes).toHaveLength(0)
+    expect(unparsedLines).toHaveLength(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Component header without version
+// ---------------------------------------------------------------------------
+describe('scopeParser — component header without version', () => {
+  test('header without version followed by MOD/FIX is recognized with empty version', () => {
+    const raw = 'Baza benefit_xcode_runner\n   * MOD - Fix something Done'
+    const { changes } = parseScope(raw)
+    expect(changes).toHaveLength(1)
+    expect(changes[0].component).toBe('Baza benefit_xcode_runner')
+    expect(changes[0].version).toBe('')
+    expect(changes[0].type).toBe('MOD')
+    expect(changes[0].status).toBe('Done')
+  })
+
+  test('header without version followed by nothing is NOT treated as a component header', () => {
+    const raw = 'Baza benefit_xcode_runner'
+    const { changes, unparsedLines } = parseScope(raw)
+    expect(changes).toHaveLength(0)
+    expect(unparsedLines).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Multi-component input
 // ---------------------------------------------------------------------------
 describe('scopeParser — multi-component', () => {

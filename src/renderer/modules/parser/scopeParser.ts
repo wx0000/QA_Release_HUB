@@ -1,7 +1,8 @@
 import type { ParsedChange, ChangeType, ChangeStatus } from '../../types/report.types'
 
 const COMPONENT_RE = /^\*?\s*(.+?) (v\.?[\d.]+)/
-const CHANGE_RE = /^\s+\* (MOD|FIX) - (.+)/
+const CHANGE_RE = /^\s*(?:\*\s*)?(MOD|FIX) - (.+)/
+const CHANGE_START_RE = /^\s*(?:\*\s*)?(MOD|FIX)\s*-/
 const TICKET_MARKDOWN_RE = /\[([A-Z]+-\d+)\]\(https?:\/\/[^)]+\)/
 const TICKET_PLAIN_RE = /\[([A-Z]+-\d+)\]/
 const TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/
@@ -28,16 +29,17 @@ export function parseScope(raw: string): ScopeParseResult {
   let currentVersion = ''
   let nr = 1
 
-  for (const line of lines) {
+  const nextNonEmptyIdx = (from: number): number => {
+    for (let j = from; j < lines.length; j++) {
+      if (lines[j].trim()) return j
+    }
+    return -1
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const trimmed = line.trim()
     if (!trimmed) continue
-
-    const compMatch = line.match(COMPONENT_RE)
-    if (compMatch) {
-      currentComponent = compMatch[1].replace(IGNORED_SUFFIX_RE, '').trim()
-      currentVersion = compMatch[2].replace(/^v\./, 'v')
-      continue
-    }
 
     const changeMatch = line.match(CHANGE_RE)
     if (changeMatch) {
@@ -89,6 +91,18 @@ export function parseScope(raw: string): ScopeParseResult {
       continue
     }
 
+    // A line is a component header only when the next non-empty line is a MOD/FIX change.
+    const nextIdx = nextNonEmptyIdx(i + 1)
+    if (nextIdx !== -1 && CHANGE_START_RE.test(lines[nextIdx])) {
+      const compMatch = line.match(COMPONENT_RE)
+      if (compMatch) {
+        currentComponent = compMatch[1].replace(IGNORED_SUFFIX_RE, '').trim()
+        currentVersion = compMatch[2].replace(/^v\./, 'v')
+      } else {
+        currentComponent = trimmed.replace(/^\*\s*/, '').replace(IGNORED_SUFFIX_RE, '').trim()
+        currentVersion = ''
+      }
+    }
     // All other lines silently skipped
   }
 
