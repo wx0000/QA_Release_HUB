@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** scopeParser lookahead ✅ — component headers no longer require a version; detected by lookahead at next MOD/FIX line; 30/30 tests green
+- **Last completed:** PROJECT.md audit ✅ — v0.1.0 checkboxes fixed in Roadmap + Acceptance Criteria; missing changelog entries added (scopeParser hardening, TabBar fix); memory updated with conscious update protocol
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -338,6 +338,13 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-09 — PROJECT.md audit + memory protocol
+- **PROJECT.md:** v0.1.0 all roadmap items marked `[x]`, heading updated to `✅`; Acceptance Criteria v0.1.0 same treatment
+- **PROJECT.md Changelog:** added missing entries — scopeParser hardening (ChangeStatus, bare ticket, Polish suffix) and TabBar `__APP_VERSION__` fix, both from 2026-05-08 session
+- **Memory:** added `feedback_bug_diagnosis.md` — when listing bug causes, always pick most likely + provide ready-to-paste Claude Code prompt
+- **Memory:** updated `feedback_update_logs.md` — full section-by-section checklist for conscious update protocol; test: "would a new developer have accurate picture from PROJECT.md alone?"
+- No code written this session
 
 ### 2026-05-09 — scopeParser lookahead header detection
 - **`scopeParser.ts`:** replaced COMPONENT_RE-based header detection with lookahead — a line is a component header iff the next non-empty line matches `CHANGE_START_RE` (`/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`); COMPONENT_RE retained for optional version extraction

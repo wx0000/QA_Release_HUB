@@ -858,16 +858,16 @@ Central registry. Add new channels here when creating new handlers.
 
 ## TODO / Roadmap
 
-### v0.1.0 — Foundation & Layout
-- [ ] Setup: electron-vite + React + TypeScript + Tailwind + Zustand
-- [ ] Folder structure matching documentation
-- [ ] GitHub repo: main + dev, .gitignore, README.md
-- [ ] CI: .github/workflows/ci.yml (lint + type-check)
-- [ ] Custom TitleBar
-- [ ] Sidebar navigation: 5 tabs (Tab 2, 3, 4, 5 as placeholders)
-- [ ] UI components: Button, Input, Checkbox, Textarea
-- [ ] MetaForm — all fields
-- [ ] DatePicker — calendar popup
+### v0.1.0 — Foundation & Layout ✅
+- [x] Setup: electron-vite + React + TypeScript + Tailwind + Zustand
+- [x] Folder structure matching documentation
+- [x] GitHub repo: main + dev, .gitignore, README.md
+- [x] CI: .github/workflows/ci.yml (lint + type-check)
+- [x] Custom TitleBar
+- [x] Sidebar navigation: 5 tabs (Tab 2, 3, 4, 5 as placeholders)
+- [x] UI components: Button, Input, Checkbox, Textarea
+- [x] MetaForm — all fields
+- [x] DatePicker — calendar popup
 
 ### v0.2.0 — Parser + Tables ✅
 - [x] MetaForm layout fix: TEST/STAGE checkboxes inline right of "Environment" label
@@ -947,6 +947,11 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [docs] — 2026-05-09
+- PROJECT.md audit: v0.1.0 roadmap items and Acceptance Criteria marked `[x]` / `✅` (were left unchecked since project start)
+- Changelog backfilled: scopeParser hardening and TabBar `__APP_VERSION__` fix entries added (both from 2026-05-08, previously omitted)
+- Memory: conscious update protocol established — section-by-section checklist on every "update logs"
+
 ### [0.3.0] — 2026-05-09 (patch)
 - scopeParser: component headers now detected by lookahead (next non-empty line is MOD/FIX); version optional — lines without version produce `version: ""`
 - scopeParser tests: +2 cases for versionless header; 30 tests total
@@ -958,8 +963,9 @@ Central registry. Add new channels here when creating new handlers.
 - pdf.handler.ts: IPC handler with save dialog + fs.writeFile + IpcResult typed returns
 - PdfPreview.tsx: "Generate report PDF" button + inline success/error status
 - ReportData type added; electron.d.ts + preload updated for new signature
-- TitleBar: version now derived from package.json via `__APP_VERSION__` Vite define
+- TitleBar + TabBar: version now derived from package.json via `__APP_VERSION__` Vite define (both components)
 - package.json bumped to 0.3.0
+- scopeParser hardening: ChangeStatus extended with `'In Progress'` and `'Documentation'`; bare ticket fallback added (`TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/`); Polish suffix `(z iteracji R_...)` added to ignored patterns; non-MOD/FIX lines silently skipped; orphan MOD/FIX (no component context) → `unparsedLines[]`
 
 ### [0.2.0] — 2026-05-07
 - MetaForm: TEST/STAGE checkboxes inline right of Environment label
@@ -1046,13 +1052,13 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 
 ## Acceptance Criteria per Version
 
-### v0.1.0 — DONE when:
-- [ ] `npm run dev` → Electron window opens
-- [ ] Sidebar: 5 tabs, switching works
-- [ ] MetaForm: all fields visible and editable
-- [ ] DatePicker: popup opens/closes without crash, date saves to field
-- [ ] `npm run lint` + `npm run type-check` → zero errors
-- [ ] GitHub: repo, min. 5 conventional commits, README.md
+### v0.1.0 — DONE ✅
+- [x] `npm run dev` → Electron window opens
+- [x] Sidebar: 5 tabs, switching works
+- [x] MetaForm: all fields visible and editable
+- [x] DatePicker: popup opens/closes without crash, date saves to field
+- [x] `npm run lint` + `npm run type-check` → zero errors
+- [x] GitHub: repo, min. 5 conventional commits, README.md
 
 ### v0.2.0 — DONE ✅
 - [x] MetaForm: TEST/STAGE checkboxes displayed inline right of "Environment" label
