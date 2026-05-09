@@ -12,7 +12,8 @@ type Status =
 
 export function PdfPreview() {
   const [status, setStatus] = useState<Status>({ type: 'idle' })
-  const { meta, changes } = useReportStore()
+  const meta = useReportStore(state => state.meta)
+  const changes = useReportStore(state => state.changes)
 
   async function handleGeneratePdf() {
     if (changes.length === 0) {

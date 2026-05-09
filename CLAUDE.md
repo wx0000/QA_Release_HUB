@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** PROJECT.md audit ✅ — v0.1.0 checkboxes fixed in Roadmap + Acceptance Criteria; missing changelog entries added (scopeParser hardening, TabBar fix); memory updated with conscious update protocol
+- **Last completed:** Zustand selectors + useDraft fix ✅ — all 5 report components use per-field selectors; useDraft useEffect `[]` fixed + stale closure replaced with `getState()`; `Tested manually:` added to session protocol and all log entries
 - **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
@@ -77,7 +77,9 @@ Before closing every session, always do these in order:
 2. Add entry to **Session Log** below
 3. Verify `npm run type-check` → 0 errors
 4. Verify `npm run lint` → 0 errors
-5. Provide conventional commit message
+5. Verify `npm run test` → green
+6. **Tested manually:** confirm UI works end-to-end (record in Session Log under `Tested manually:`)
+7. Provide conventional commit message
 
 ---
 
@@ -101,6 +103,7 @@ A task is complete when ALL of these pass:
 - [ ] Test written (required for any business logic — parsers, helpers, transformations)
 - [ ] `npm run test` → green
 - [ ] CLAUDE.md updated (current status + session log)
+- [ ] Tested manually: UI golden path verified, recorded in Session Log
 - [ ] Conventional commit message prepared
 
 ---
@@ -339,27 +342,36 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-09 — Zustand selectors + useDraft fix
+- **`useDraft.ts`:** useEffect missing `[]` fixed (interval was resetting every render → autosave never fired); `saveDraft` now uses `useReportStore.getState()` instead of stale closure values; setters selected via individual selectors
+- **`ChangesTable.tsx`, `ScopeInput.tsx`, `TestCasesTable.tsx`, `PdfPreview.tsx`, `MetaForm.tsx`:** all replaced `useReportStore()` (full-store subscription) with per-field selectors — each component now re-renders only when its own slice of state changes
+- **Checks:** `npm run type-check` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** `npm run dev:browser` → tabela widoczna po parsowaniu, TestCasesTable wypełniona, Generate PDF działa, PDF zapisany na dysk
+
 ### 2026-05-09 — PROJECT.md audit + memory protocol
 - **PROJECT.md:** v0.1.0 all roadmap items marked `[x]`, heading updated to `✅`; Acceptance Criteria v0.1.0 same treatment
 - **PROJECT.md Changelog:** added missing entries — scopeParser hardening (ChangeStatus, bare ticket, Polish suffix) and TabBar `__APP_VERSION__` fix, both from 2026-05-08 session
 - **Memory:** added `feedback_bug_diagnosis.md` — when listing bug causes, always pick most likely + provide ready-to-paste Claude Code prompt
 - **Memory:** updated `feedback_update_logs.md` — full section-by-section checklist for conscious update protocol; test: "would a new developer have accurate picture from PROJECT.md alone?"
-- No code written this session
+- **Tested manually:** n/a (no UI changes — docs and memory only)
 
 ### 2026-05-09 — scopeParser lookahead header detection
 - **`scopeParser.ts`:** replaced COMPONENT_RE-based header detection with lookahead — a line is a component header iff the next non-empty line matches `CHANGE_START_RE` (`/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`); COMPONENT_RE retained for optional version extraction
 - **No version case:** lines without a version token → `currentComponent = trimmed` (bullet stripped), `currentVersion = ''`
 - **`scopeParser.test.ts`:** added `scopeParser — component header without version` describe block — 2 new cases (header+MOD/FIX → recognized with `version=''`; lone header → silently skipped); total 27 scope tests, 30 overall
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** n/a (parser-only change — no UI affected)
 - **Commit:** `feat(parser): detect component headers by lookahead instead of requiring a version`
 
 ### 2026-05-08 — TabBar version fix
 - **`TabBar.tsx`:** replaced hardcoded `v0.1.0 — Foundation` with `v{__APP_VERSION__}` — both title bar and sidebar now update automatically from `package.json`
 - **Checks:** `npm run type-check` ✅
+- **Tested manually:** `npm run dev:browser` → sidebar shows `v0.3.0` instead of hardcoded `v0.1.0`
 
 ### 2026-05-08 — package.json version bump
 - **Root cause:** `package.json` `version` field was `0.1.0` — never bumped despite completing v0.2.0 and v0.3.0B sessions
 - **Fix:** bumped to `0.3.0`; `__APP_VERSION__` Vite define now resolves to the correct value
+- **Tested manually:** n/a (config change only — verified by TitleBar/TabBar showing `v0.3.0`)
 - **Commit:** `chore: bump version to 0.3.0 in package.json`
 
 ### 2026-05-08 — TitleBar version automation
@@ -367,6 +379,7 @@ These took time to figure out — don't re-solve them:
 - **`electron.d.ts`:** declared `const __APP_VERSION__: string` inside `declare global` (module-file scoping requirement)
 - **`TitleBar.tsx`:** replaced hardcoded `"v0.3.0"` with `v{__APP_VERSION__}`
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
+- **Tested manually:** `npm run dev:browser` → title bar shows `v0.3.0` derived from `package.json`
 
 ### 2026-05-08 — scopeParser hardening
 - **`ChangeStatus`:** added `'In Progress'` and `'Documentation'` to type + `STATUS_TOKENS` + `ChangesTable` `STATUS_OPTIONS`
@@ -375,6 +388,7 @@ These took time to figure out — don't re-solve them:
 - **Line skipping:** non-MOD/FIX lines silently skipped; only MOD/FIX without component context → `unparsedLines`
 - **Tests:** full table-driven rewrite — 18 cases across 6 `describe` blocks (tickets, statuses, version, suffix, skipping, multi-component); total 21 tests green
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (21/21)
+- **Tested manually:** n/a (parser-only — covered by Vitest; UI change limited to Status dropdown options)
 
 ### 2026-05-08 — v0.3.0B — pdfGenerator pipeline (COMPLETE)
 - **Architecture:** pdfmake runs in renderer (Chromium); renderer generates base64 PDF → main process saves via `dialog.showSaveDialog` + `fs.writeFile`
@@ -387,6 +401,7 @@ These took time to figure out — don't re-solve them:
 - **`electron.d.ts` + `preload/index.ts`:** updated `pdf.generateReport` signature to `(pdfBase64, defaultFilename)`
 - **App.tsx:** `<PdfPreview />` added to ReportPage
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (8/8)
+- **Tested manually:** Electron app → parse scope → Generate report PDF → save dialog → PDF on disk with header, tables, footer ✅; `currentResult` cells blank (expected — TipTap pending)
 - **Known limitation:** `currentResult` cells in Section 2 are blank until v0.3.0A (TipTap) wires `testResults` into store
 
 ### 2026-05-07 — v0.2.0 (COMPLETE)
@@ -397,6 +412,7 @@ These took time to figure out — don't re-solve them:
 - **reportStore:** added `updateChange(nr, patch)` — updates both `changes[]` and the matching `checklist[].change` reference
 - **App.tsx:** swapped `TestChecklist` → `TestCasesTable`
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (8/8)
+- **Tested manually:** `npm run dev:browser` → paste scope → Parse → ChangesTable populated, all columns editable, TestCasesTable mirrors data, POSITIVE badge locked ✅
 - **Known limitation:** `currentResult` in TestCasesTable is local state — lost on tab switch until TipTap + store wiring in v0.3.0
 
 ### 2026-05-07 — v0.2.0 scope correction + conventions
@@ -406,6 +422,7 @@ These took time to figure out — don't re-solve them:
 - **IPC channels standardized:** `store:get` / `store:set` (was `store:read` / `store:write`); `window.electronAPI.<domain>.<method>()` is the only renderer IPC pattern (removed stale `window.electron.ipcRenderer.invoke` reference)
 - **Session shorthand established:** "update CLAUDE.md" = update Current Status + Session Log (saved to persistent memory)
 - Files changed: `CLAUDE.md`, `PROJECT.md`
+- **Tested manually:** n/a (spec/convention changes only — no code)
 
 ### 2026-05-07 — v0.1.0 Foundation & Layout (COMPLETE)
 - **What was done:** Full v0.1.0 scaffold built from scratch — 55 source files generated
@@ -427,6 +444,7 @@ These took time to figure out — don't re-solve them:
   - Browser preview: `vite.browser.config.ts` + `dev:browser` script
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (8/8)
 - **Tag:** `v0.1.0` on `main`
+- **Tested manually:** `npm run dev:browser` → sidebar 5 tabs, MetaForm all fields, DatePicker popup, tab switching works ✅
 - **Decisions / gotchas found:**
   - `window.electronAPI` must use `?.` optional chaining in all hooks — crashes browser preview otherwise
   - `@import` in globals.css must precede `@tailwind` directives (PostCSS requirement)

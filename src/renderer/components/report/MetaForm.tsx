@@ -8,7 +8,8 @@ import { useReportStore } from '../../store/reportStore'
 import { useTesters } from '../../hooks/useTesters'
 
 export function MetaForm() {
-  const { meta, setMeta } = useReportStore()
+  const meta = useReportStore(state => state.meta)
+  const setMeta = useReportStore(state => state.setMeta)
   const { testers, addTester } = useTesters()
   const [showAddTester, setShowAddTester] = useState(false)
   const [newTesterName, setNewTesterName] = useState('')

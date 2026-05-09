@@ -6,7 +6,9 @@ import { useReportStore } from '../../store/reportStore'
 import { parseScope } from '../../modules/parser/scopeParser'
 
 export function ScopeInput() {
-  const { rawScope, setRawScope, setChanges } = useReportStore()
+  const rawScope = useReportStore(state => state.rawScope)
+  const setRawScope = useReportStore(state => state.setRawScope)
+  const setChanges = useReportStore(state => state.setChanges)
   const [unparsed, setUnparsed] = useState<string[]>([])
   const [parseCount, setParseCount] = useState<number | null>(null)
 

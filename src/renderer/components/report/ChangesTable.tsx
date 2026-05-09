@@ -13,7 +13,8 @@ const CELL_INPUT =
   'focus:outline-none focus:bg-bg-primary/40 focus:ring-1 focus:ring-accent/40 transition-all'
 
 export function ChangesTable() {
-  const { changes, updateChange } = useReportStore()
+  const changes = useReportStore(state => state.changes)
+  const updateChange = useReportStore(state => state.updateChange)
 
   if (changes.length === 0) {
     return (

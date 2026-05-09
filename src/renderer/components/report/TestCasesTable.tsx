@@ -8,7 +8,7 @@ const TYPE_CLASSES: Record<ChangeType, string> = {
 }
 
 export function TestCasesTable() {
-  const { changes } = useReportStore()
+  const changes = useReportStore(state => state.changes)
   // currentResult is local for v0.2.0 — moves to store when TipTap is wired in v0.3.0
   const [currentResults, setCurrentResults] = useState<Record<number, string>>({})
 

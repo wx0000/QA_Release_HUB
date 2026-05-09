@@ -947,6 +947,11 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [fix] — 2026-05-09
+- `useDraft.ts`: useEffect missing `[]` fixed — interval was resetting on every render, autosave never fired; `saveDraft` now uses `useReportStore.getState()` instead of stale closure
+- Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
+- Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
+
 ### [docs] — 2026-05-09
 - PROJECT.md audit: v0.1.0 roadmap items and Acceptance Criteria marked `[x]` / `✅` (were left unchecked since project start)
 - Changelog backfilled: scopeParser hardening and TabBar `__APP_VERSION__` fix entries added (both from 2026-05-08, previously omitted)
