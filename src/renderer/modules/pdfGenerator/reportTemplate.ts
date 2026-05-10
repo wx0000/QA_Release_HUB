@@ -28,23 +28,66 @@ function cell(text: string, odd: boolean, extra?: object): TableCell {
   return { text, ...(odd ? { fillColor: ROW_ALT_FILL } : {}), ...extra }
 }
 
-function tiptapToText(json: string): string {
-  if (!json) return ''
+// Minimal TipTap node shape — only fields we actually read
+interface TipTapNode {
+  type: string
+  text?: string
+  marks?: Array<{ type: string }>
+  attrs?: { src?: string }
+  content?: TipTapNode[]
+}
+
+type PdfRun = { text: string; bold?: boolean; italics?: boolean }
+
+function parseParagraphInlines(nodes: TipTapNode[]): PdfRun[] {
+  return nodes.flatMap<PdfRun>(child => {
+    if (child.type === 'text' && child.text) {
+      return [{
+        text: child.text,
+        ...(child.marks?.some(m => m.type === 'bold') && { bold: true as const }),
+        ...(child.marks?.some(m => m.type === 'italic') && { italics: true as const }),
+      }]
+    }
+    if (child.type === 'hardBreak') return [{ text: '\n' }]
+    return []
+  })
+}
+
+// Converts TipTap JSON to a pdfmake TableCell with text runs and inline images.
+// Falls back to empty cell on parse error or empty content.
+function tiptapToCell(json: string, odd: boolean): TableCell {
+  const fillColor = odd ? ROW_ALT_FILL : undefined
+  const empty = (): TableCell =>
+    (fillColor ? { text: '', fillColor } : { text: '' }) as TableCell
+
+  if (!json) return empty()
+
   try {
-    const texts: string[] = []
-    const walk = (node: Record<string, unknown>) => {
-      if (typeof node.text === 'string') texts.push(node.text)
-      if (Array.isArray(node.content)) {
-        (node.content as Record<string, unknown>[]).forEach(walk)
+    const parsed: unknown = JSON.parse(json)
+    if (typeof parsed !== 'object' || parsed === null) return empty()
+
+    const doc = parsed as TipTapNode
+    if (!Array.isArray(doc.content)) return empty()
+
+    const blocks: Content[] = []
+
+    for (const node of doc.content) {
+      if (node.type === 'paragraph' && Array.isArray(node.content)) {
+        const runs = parseParagraphInlines(node.content)
+        if (runs.length > 0) {
+          blocks.push({ text: runs } as unknown as Content)
+        }
+      } else if (node.type === 'image' && typeof node.attrs?.src === 'string') {
+        blocks.push({ image: node.attrs.src, width: 120, margin: [0, 2, 0, 2] } as unknown as Content)
       }
     }
-    const doc = JSON.parse(json) as Record<string, unknown>
-    if (Array.isArray(doc.content)) {
-      (doc.content as Record<string, unknown>[]).forEach(walk)
-    }
-    return texts.join(' ').trim()
+
+    if (blocks.length === 0) return empty()
+
+    const body = blocks.length === 1 ? { ...blocks[0] as object } : { stack: blocks }
+    return (fillColor ? { ...body, fillColor } : body) as unknown as TableCell
   } catch {
-    return ''
+    return empty()
   }
 }
 
@@ -82,7 +125,7 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
       cell(c.type, odd),
       cell(c.changeDescription, odd),
       cell(c.ticket, odd),
-      cell(tiptapToText(testResults[c.nr] ?? ''), odd),
+      tiptapToCell(testResults[c.nr] ?? '', odd),
       cell('POSITIVE', odd, { bold: true, color: '#16a34a' })
     ]
   })

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TitleBar } from './components/layout/TitleBar'
 import { TabBar, type TabId } from './components/layout/TabBar'
 import { PageWrapper } from './components/layout/PageWrapper'
+import { useDraft } from './hooks/useDraft'
+import { DraftRestoreDialog } from './components/report/DraftRestoreDialog'
 
 // Tab 1 — Report Generator
 import { MetaForm } from './components/report/MetaForm'
@@ -76,6 +78,23 @@ const TAB_PAGES: Record<TabId, () => JSX.Element> = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>(1)
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null)
+  const { peekDraft, loadDraft, clearDraft } = useDraft()
+
+  useEffect(() => {
+    peekDraft().then(savedAt => { if (savedAt) setDraftSavedAt(savedAt) })
+  }, [peekDraft])
+
+  const handleLoadDraft = async () => {
+    await loadDraft()
+    setDraftSavedAt(null)
+  }
+
+  const handleDiscardDraft = async () => {
+    await clearDraft()
+    setDraftSavedAt(null)
+  }
+
   const Page = TAB_PAGES[activeTab]
 
   return (
@@ -87,6 +106,13 @@ export default function App() {
           <Page />
         </div>
       </div>
+      {draftSavedAt !== null && (
+        <DraftRestoreDialog
+          savedAt={draftSavedAt}
+          onLoad={handleLoadDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
     </div>
   )
 }

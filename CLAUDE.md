@@ -18,9 +18,9 @@
 
 ## Current Status
 
-- **Version in dev:** v0.3.1 shipped; next is TBD (v0.3.2 patch or v0.4.0 Schedule tab)
-- **Last completed:** v0.3.1 ✅ — tiptapToText revert + vendor required validation before Parse scope
-- **Next concrete task:** TBD — options: (A) finish v0.3.x: auto-save draft + images in PDF; (B) jump to v0.4.0 Schedule tab
+- **Version in dev:** v0.3.2 shipped; next is v0.4.0 Schedule tab
+- **Last completed:** v0.3.2 ✅ — auto-save dialog on startup + images in PDF (tiptapToCell)
+- **Next concrete task:** v0.4.0 — Schedule tab (ScheduleInput / ScheduleBuilder / ScheduleOutput)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
@@ -342,6 +342,14 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-10 — v0.3.2: auto-save dialog + images in PDF
+- **`DraftRestoreDialog.tsx`** (nowy): modal "Draft detected" z przyciskami Load/Discard; pokazuje sformatowaną datę zapisu; `formatSavedAt` jako helper
+- **`useDraft.ts`:** dodano `peekDraft` (zwraca `savedAt | null`, pomija draft bez treści), `clearDraft` (ustawia null na dysku); wszystkie funkcje opakowane w `useCallback`; `useEffect` z dep `[saveDraft]` zamiast `[]`
+- **`App.tsx`:** `useDraft` przeniesiony do głównego komponentu `App`; `useEffect` wywołuje `peekDraft` raz po starcie; `DraftRestoreDialog` renderowany jako overlay; autosave działa globalnie (niezależnie od aktywnego taba)
+- **`reportTemplate.ts`:** usunięto `tiptapToText`; dodano `TipTapNode` interface, `PdfRun` type, `parseParagraphInlines` (bold/italic/hardBreak), `tiptapToCell` — buduje `{ stack: [...] }` z blokami tekstu i obrazami base64 (width: 120); sekcja 2 używa `tiptapToCell` zamiast `tiptapToText`
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** `npm run dev:browser` — brak możliwości weryfikacji dialogu (IPC no-op w browser preview); PDF z obrazami wymaga Electron + TipTap content
 
 ### 2026-05-10 — retroactive versioning clarification (docs only)
 - **`CLAUDE.md`:** all `v0.3.0A` / `v0.3.0B` labels in Session Log replaced with `v0.3.0`; exploratory session entry updated to document v0.3.1 scope; Current Status updated to reflect v0.3.1 shipped

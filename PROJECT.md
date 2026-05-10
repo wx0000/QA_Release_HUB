@@ -886,7 +886,7 @@ Central registry. Add new channels here when creating new handlers.
 - [x] "Add image" file picker
 - [x] pdfGenerator: main report
 - [x] Save dialog + toast
-- [ ] Auto-save + load dialog on startup
+- [x] Auto-save + load dialog on startup
 
 ### v0.4.0 — Schedule (Tab 2)
 - [ ] scheduleParser: Type A + Type B + tests
@@ -949,6 +949,12 @@ Central registry. Add new channels here when creating new handlers.
 ---
 
 ## Changelog
+
+### [0.3.2] — 2026-05-10
+- `DraftRestoreDialog.tsx` (new): modal "Draft detected" shown on app startup when a previous session's draft contains meaningful data; Load/Discard actions; displays formatted save timestamp
+- `useDraft.ts`: added `peekDraft` (returns `savedAt` only when draft has rawScope or changes), `clearDraft` (writes null to disk); all functions wrapped in `useCallback` for stable references; autosave interval now runs from `App` (global, tab-independent)
+- `App.tsx`: `useDraft` moved to root `App` component; startup `useEffect` calls `peekDraft` once; `DraftRestoreDialog` rendered as top-level overlay
+- `reportTemplate.ts`: replaced `tiptapToText` with `tiptapToCell` — walks TipTap JSON and builds pdfmake content with text runs (bold/italic) and inline base64 images (width 120); Section 2 "Current result" column now renders rich content from editor
 
 ### [0.3.1] — 2026-05-10
 - `reportTemplate.ts`: reverted `tiptapToContent` → `tiptapToText` — rich-text layout (bold/italic/images) caused pdfmake cell overflow; plain text extraction is stable fallback until images-in-PDF is tackled separately
@@ -1114,8 +1120,8 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [x] Ctrl+V pastes screenshot inline
 - [x] "Generate report PDF" → file on disk
 - [x] PDF: header, both tables, summary, footer with page numbers
-- [ ] Images visible in PDF
-- [ ] Auto-save: draft saved, dialog on restart
+- [x] Images visible in PDF
+- [x] Auto-save: draft saved, dialog on restart
 
 ### v0.4.0 — DONE when:
 - [ ] Schedule Type A → correct structure in ScheduleBuilder

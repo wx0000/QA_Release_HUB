@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import type { ReportMeta, ParsedChange } from '../types/report.types'
 import { useReportStore } from '../store/reportStore'
 
 const DRAFT_KEY = 'drafts/current.json'
 const AUTOSAVE_INTERVAL_MS = 30_000
+
+interface DraftData {
+  meta?: ReportMeta
+  rawScope?: string
+  changes?: ParsedChange[]
+  savedAt?: string
+}
 
 export function useDraft() {
   const setMeta = useReportStore(state => state.setMeta)
@@ -11,33 +18,41 @@ export function useDraft() {
   const setChanges = useReportStore(state => state.setChanges)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const saveDraft = () => {
-    // getState() reads current values at call time — no stale closure
+  const saveDraft = useCallback(() => {
     const { meta, rawScope, changes, checklist } = useReportStore.getState()
     const draft = { meta, rawScope, changes, checklist, savedAt: new Date().toISOString() }
     window.electronAPI?.store.set(DRAFT_KEY, draft).catch(() => {})
-  }
+  }, [])
 
-  const loadDraft = async (): Promise<boolean> => {
-    const draft = (await window.electronAPI?.store.get(DRAFT_KEY)) as {
-      meta?: ReportMeta
-      rawScope?: string
-      changes?: ParsedChange[]
-    } | null
+  // Returns savedAt if a meaningful draft exists, null otherwise
+  const peekDraft = useCallback(async (): Promise<string | null> => {
+    const raw = await window.electronAPI?.store.get(DRAFT_KEY)
+    const draft = raw as DraftData | null
+    if (!draft?.savedAt) return null
+    if (!draft.rawScope && (!draft.changes || draft.changes.length === 0)) return null
+    return draft.savedAt
+  }, [])
+
+  const loadDraft = useCallback(async (): Promise<boolean> => {
+    const raw = await window.electronAPI?.store.get(DRAFT_KEY)
+    const draft = raw as DraftData | null
     if (!draft) return false
     if (draft.meta) setMeta(draft.meta)
     if (draft.rawScope) setRawScope(draft.rawScope)
     if (draft.changes) setChanges(draft.changes)
     return true
-  }
+  }, [setMeta, setRawScope, setChanges])
 
-  // [] = only on mount/unmount — interval persists for the component lifetime
+  const clearDraft = useCallback(async (): Promise<void> => {
+    await window.electronAPI?.store.set(DRAFT_KEY, null).catch(() => {})
+  }, [])
+
   useEffect(() => {
     timerRef.current = setInterval(saveDraft, AUTOSAVE_INTERVAL_MS)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [])
+  }, [saveDraft])
 
-  return { saveDraft, loadDraft }
+  return { saveDraft, peekDraft, loadDraft, clearDraft }
 }
