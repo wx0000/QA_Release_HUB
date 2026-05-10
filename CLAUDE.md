@@ -18,9 +18,9 @@
 
 ## Current Status
 
-- **Version in dev:** v0.3.0
-- **Last completed:** pdfGenerator runtime fix ✅ — `.default` unwrap for both pdfmake and vfs_fonts dynamic imports
-- **Next concrete task:** v0.3.1 — draft persistence (useDraft auto-save testResults to JSON; reload on app start)
+- **Version in dev:** v0.3.1 shipped; next is TBD (v0.3.2 patch or v0.4.0 Schedule tab)
+- **Last completed:** v0.3.1 ✅ — tiptapToText revert + vendor required validation before Parse scope
+- **Next concrete task:** TBD — options: (A) finish v0.3.x: auto-save draft + images in PDF; (B) jump to v0.4.0 Schedule tab
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
@@ -343,21 +343,28 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
-### 2026-05-10 — exploratory / diagnostic session
+### 2026-05-10 — retroactive versioning clarification (docs only)
+- **`CLAUDE.md`:** all `v0.3.0A` / `v0.3.0B` labels in Session Log replaced with `v0.3.0`; exploratory session entry updated to document v0.3.1 scope; Current Status updated to reflect v0.3.1 shipped
+- **`PROJECT.md`:** Versioning section: added one-line PATCH note; Changelog: `v0.3.0A` → `v0.3.0` (2 places), ADR-001 `v0.3.0B` → `v0.3.0`; new `[0.3.1] — 2026-05-10` entry added with full description
+- **Checks:** n/a (docs only)
+- **Tested manually:** n/a
+
+### 2026-05-10 — v0.3.1 shipped + exploratory / diagnostic session
+- Committed and pushed two pre-staged changesets as **v0.3.1**:
+  - `fix(pdf)`: reverted `tiptapToContent` → `tiptapToText` in Section 2 (rich-text layout issues in pdfmake)
+  - `feat(report)`: vendor field now required before Parse scope — inline error on Vendor input; `vendorWarning` state + `setVendorWarning` action added to `reportStore`; `Input` component gains `required` prop (red asterisk)
 - Read `scopeParser.ts` (IGNORED_SUFFIX_RE, component header detection, changeDescription extraction)
 - Read `reportTemplate.ts` (Section 1 body builder, tiptapToText, Section 2 Current result cell)
-- Added/removed temporary `console.log` in `PdfPreview.tsx` (net zero change)
-- Added/removed temporary `console.log('section1Rows:',...)` in `reportTemplate.ts` (net zero change)
-- No features added, no bugs fixed, no roadmap items closed
-- **Checks:** n/a (no code changes shipped)
-- **Tested manually:** n/a
+- Added/removed temporary `console.log`s in `PdfPreview.tsx` and `reportTemplate.ts` (net zero change)
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
+- **Tested manually:** n/a (no new UI flows beyond what was shipped)
 
 ### 2026-05-10 — pdfGenerator runtime fix
 - **`pdfGenerator.ts`:** fixed "addVirtualFileSystem is not a function" — bundler wraps both dynamic imports in `.default`; added `pdfMakeRaw`/`vfsFontsRaw` intermediates with `.default ?? raw` unwrap before use
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
 - **Tested manually:** requires Electron app with PDF generation flow
 
-### 2026-05-10 — wire testResults into PDF Section 2 (v0.3.0A complete)
+### 2026-05-10 — wire testResults into PDF Section 2 (v0.3.0)
 - **`reportTemplate.ts`:** added `tiptapToText` helper (full text extraction from TipTap JSON, no truncation); Section 2 "Current result" cell now uses `tiptapToText(testResults[c.nr] ?? '')` instead of raw JSON
 - **`PdfPreview.tsx`:** added `testResults` selector; passed to `buildDocDefinition`
 - **`TestCasesTable.tsx`:** fixed pre-existing `no-extra-semi` lint errors (unnecessary `;` before `(` inside `if` blocks)
@@ -374,7 +381,7 @@ These took time to figure out — don't re-solve them:
 - **`ChangesTable.tsx`:** ticket hyperlink klasa zmieniona z `text-sm` na `text-xs` (zgodnie ze specem)
 - **Tested manually:** n/a (1-linia CSS, wizualnie weryfikowalne w tabeli)
 
-### 2026-05-10 — TipTap modal "Current result" (v0.3.0A)
+### 2026-05-10 — TipTap modal "Current result" (v0.3.0)
 - **`package.json`:** `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
 - **`reportStore.ts`:** added `testResults: Record<number, string>` + `setTestResult(nr, content)`; `setChanges` resets `testResults` on re-parse; `resetReport` clears `testResults`
 - **`ResultEditorModal.tsx`** (nowy): TipTap editor z Bold/Italic toolbar, Ctrl+V paste obrazów, file picker (jpg/jpeg/png), drag&drop; obrazy serializowane jako base64 data URI; Escape i klik poza → zamknięcie bez zapisu
@@ -421,7 +428,7 @@ These took time to figure out — don't re-solve them:
 - **Tested manually:** `npm run dev:browser` → sidebar shows `v0.3.0` instead of hardcoded `v0.1.0`
 
 ### 2026-05-08 — package.json version bump
-- **Root cause:** `package.json` `version` field was `0.1.0` — never bumped despite completing v0.2.0 and v0.3.0B sessions
+- **Root cause:** `package.json` `version` field was `0.1.0` — never bumped despite completing v0.2.0 and v0.3.0 sessions
 - **Fix:** bumped to `0.3.0`; `__APP_VERSION__` Vite define now resolves to the correct value
 - **Tested manually:** n/a (config change only — verified by TitleBar/TabBar showing `v0.3.0`)
 - **Commit:** `chore: bump version to 0.3.0 in package.json`
@@ -442,10 +449,10 @@ These took time to figure out — don't re-solve them:
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (21/21)
 - **Tested manually:** n/a (parser-only — covered by Vitest; UI change limited to Status dropdown options)
 
-### 2026-05-08 — v0.3.0B — pdfGenerator pipeline (COMPLETE)
+### 2026-05-08 — v0.3.0 — pdfGenerator pipeline (COMPLETE)
 - **Architecture:** pdfmake runs in renderer (Chromium); renderer generates base64 PDF → main process saves via `dialog.showSaveDialog` + `fs.writeFile`
 - **pdfmake v0.3.8 installed** — API changed from v0.2.x: `addVirtualFileSystem(vfsFonts)` for font setup; `.getBase64()` / `.getBuffer()` return Promises
-- **`reportTemplate.ts`:** full pdfmake doc definition — header block, Section 1 (7-col changes table), Section 2 (8-col test cases, `testResults` wired for v0.3.0A), Section 3 (summary), footer with page numbers
+- **`reportTemplate.ts`:** full pdfmake doc definition — header block, Section 1 (7-col changes table), Section 2 (8-col test cases, `testResults` wired for v0.3.0), Section 3 (summary), footer with page numbers
 - **`pdfGenerator.ts`:** `createPdfBase64(docDef) → Promise<string>` — thin wrapper around pdfmake
 - **`pdf.handler.ts`:** full IPC handler — save dialog, `fs.writeFile`, `IpcResult` typed returns
 - **`PdfPreview.tsx`:** "Generate report PDF" button + inline success/error status; graceful no-op in browser preview
@@ -454,7 +461,7 @@ These took time to figure out — don't re-solve them:
 - **App.tsx:** `<PdfPreview />` added to ReportPage
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (8/8)
 - **Tested manually:** Electron app → parse scope → Generate report PDF → save dialog → PDF on disk with header, tables, footer ✅; `currentResult` cells blank (expected — TipTap pending)
-- **Known limitation:** `currentResult` cells in Section 2 are blank until v0.3.0A (TipTap) wires `testResults` into store
+- **Known limitation:** `currentResult` cells in Section 2 are blank until v0.3.0 (TipTap) wires `testResults` into store
 
 ### 2026-05-07 — v0.2.0 (COMPLETE)
 - **MetaForm:** TEST/STAGE checkboxes now inline to the right of the "Environment" label

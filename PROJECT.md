@@ -280,6 +280,8 @@ Format: `MAJOR.MINOR.PATCH` (Semantic Versioning)
 - `MINOR` — new feature / new module
 - `PATCH` — bugfix, minor UX improvement
 
+PATCH is incremented for bugfixes and small additions within a MINOR version.
+
 Git tags: `v0.1.0`, `v0.2.0` etc.
 
 Each release:
@@ -948,6 +950,13 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [0.3.1] — 2026-05-10
+- `reportTemplate.ts`: reverted `tiptapToContent` → `tiptapToText` — rich-text layout (bold/italic/images) caused pdfmake cell overflow; plain text extraction is stable fallback until images-in-PDF is tackled separately
+- `reportStore.ts`: added `vendorWarning: boolean` state + `setVendorWarning` action; `resetReport` clears it
+- `ScopeInput.tsx`: Parse scope blocked when Vendor field is empty — sets `vendorWarning` to show inline error
+- `MetaForm.tsx`: Vendor `Input` now shows inline error message when `vendorWarning` is true and vendor is empty
+- `Input.tsx`: new `required` prop — renders red asterisk next to label when set
+
 ### [fix] — 2026-05-10 (pdfGenerator runtime)
 - `pdfGenerator.ts`: fixed "addVirtualFileSystem is not a function" — Vite/electron-vite wraps both `pdfmake/build/pdfmake` and `pdfmake/build/vfs_fonts` dynamic imports in `.default`; added intermediate `pdfMakeRaw`/`vfsFontsRaw` with `.default ?? raw` unwrap
 
@@ -959,7 +968,7 @@ Central registry. Add new channels here when creating new handlers.
 - Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
 - Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
 
-### [feat] — 2026-05-10 (v0.3.0A — testResults wired into PDF)
+### [feat] — 2026-05-10 (v0.3.0 — testResults wired into PDF)
 - `reportTemplate.ts`: added `tiptapToText` helper — walks TipTap JSON, joins all text nodes (no truncation); Section 2 "Current result" column now renders actual editor content instead of raw JSON
 - `PdfPreview.tsx`: `testResults` selector added; passed to `buildDocDefinition`
 - `TestCasesTable.tsx`: fixed `no-extra-semi` lint errors in `extractPreview`
@@ -969,7 +978,7 @@ Central registry. Add new channels here when creating new handlers.
 - ChangesTable: ticket fallback `<input>` → read-only `<span>`
 - ChangesTable: ticket hyperlink font size `text-sm` → `text-xs`
 
-### [feat] — 2026-05-10 (v0.3.0A — TipTap modal)
+### [feat] — 2026-05-10 (v0.3.0 — TipTap modal)
 - `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
 - `reportStore`: added `testResults: Record<number, string>` + `setTestResult`; `setChanges` resets `testResults`; `resetReport` clears `testResults`
 - `ResultEditorModal.tsx` (new): TipTap editor, Bold/Italic toolbar, Ctrl+V image paste, file picker, drag&drop; images as base64 data URIs; Escape/click-outside closes without saving
@@ -1025,7 +1034,7 @@ Central registry. Add new channels here when creating new handlers.
 ### ADR-001: pdfmake instead of Puppeteer
 Does not require Chromium, native tables + base64 images.
 Trade-off: less flexible layout — acceptable for a tabular report.
-**Implementation note (v0.3.0B):** pdfmake runs in the renderer (Chromium environment) — font bundling in the main process proved unnecessarily complex. Renderer calls `createPdf(docDef).getBase64()`, sends base64 to main, main handles `dialog.showSaveDialog` + `fs.writeFile`. Version: pdfmake v0.3.x (Promise-based API, `addVirtualFileSystem` for fonts).
+**Implementation note (v0.3.0):** pdfmake runs in the renderer (Chromium environment) — font bundling in the main process proved unnecessarily complex. Renderer calls `createPdf(docDef).getBase64()`, sends base64 to main, main handles `dialog.showSaveDialog` + `fs.writeFile`. Version: pdfmake v0.3.x (Promise-based API, `addVirtualFileSystem` for fonts).
 
 ### ADR-002: JSON instead of SQLite
 Scale does not justify SQLite. Simpler debugging, zero native dependencies.
