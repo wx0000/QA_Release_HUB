@@ -343,6 +343,15 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-10 — exploratory / diagnostic session
+- Read `scopeParser.ts` (IGNORED_SUFFIX_RE, component header detection, changeDescription extraction)
+- Read `reportTemplate.ts` (Section 1 body builder, tiptapToText, Section 2 Current result cell)
+- Added/removed temporary `console.log` in `PdfPreview.tsx` (net zero change)
+- Added/removed temporary `console.log('section1Rows:',...)` in `reportTemplate.ts` (net zero change)
+- No features added, no bugs fixed, no roadmap items closed
+- **Checks:** n/a (no code changes shipped)
+- **Tested manually:** n/a
+
 ### 2026-05-10 — pdfGenerator runtime fix
 - **`pdfGenerator.ts`:** fixed "addVirtualFileSystem is not a function" — bundler wraps both dynamic imports in `.default`; added `pdfMakeRaw`/`vfsFontsRaw` intermediates with `.default ?? raw` unwrap before use
 - **Checks:** `npm run type-check` ✅ · `npm run lint` ✅

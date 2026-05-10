@@ -10,6 +10,7 @@ import { useTesters } from '../../hooks/useTesters'
 export function MetaForm() {
   const meta = useReportStore(state => state.meta)
   const setMeta = useReportStore(state => state.setMeta)
+  const vendorWarning = useReportStore(state => state.vendorWarning)
   const { testers, addTester } = useTesters()
   const [showAddTester, setShowAddTester] = useState(false)
   const [newTesterName, setNewTesterName] = useState('')
@@ -139,6 +140,8 @@ export function MetaForm() {
           placeholder="np. firma"
           value={meta.vendor}
           onChange={(e) => setMeta({ vendor: e.target.value })}
+          required
+          error={vendorWarning && !meta.vendor ? 'Required — ticket hyperlinks will not appear without this' : undefined}
         />
       </div>
 

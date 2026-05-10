@@ -9,10 +9,17 @@ export function ScopeInput() {
   const rawScope = useReportStore(state => state.rawScope)
   const setRawScope = useReportStore(state => state.setRawScope)
   const setChanges = useReportStore(state => state.setChanges)
+  const vendor = useReportStore(state => state.meta.vendor)
+  const setVendorWarning = useReportStore(state => state.setVendorWarning)
   const [unparsed, setUnparsed] = useState<string[]>([])
   const [parseCount, setParseCount] = useState<number | null>(null)
 
   const handleParseScope = () => {
+    if (!vendor.trim()) {
+      setVendorWarning(true)
+      return
+    }
+    setVendorWarning(false)
     const result = parseScope(rawScope)
     setChanges(result.changes)
     setUnparsed(result.unparsedLines)

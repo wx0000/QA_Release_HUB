@@ -5,9 +5,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
   prefix?: string
   suffix?: string
+  required?: boolean
 }
 
-export function Input({ label, error, prefix, suffix, className = '', id, ...props }: InputProps) {
+export function Input({ label, error, required, prefix, suffix, className = '', id, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
 
   return (
@@ -15,6 +16,7 @@ export function Input({ label, error, prefix, suffix, className = '', id, ...pro
       {label && (
         <label htmlFor={inputId} className="text-xs font-medium text-text-secondary uppercase tracking-wide">
           {label}
+          {required && <span className="text-status-danger ml-0.5">*</span>}
         </label>
       )}
       <div className="flex items-center rounded-md border border-border-light bg-bg-secondary focus-within:border-accent transition-colors">

@@ -7,6 +7,7 @@ interface ReportStore {
   changes: ParsedChange[]
   checklist: ChecklistItem[]
   testResults: Record<number, string>
+  vendorWarning: boolean
 
   setMeta: (patch: Partial<ReportMeta>) => void
   setRawScope: (raw: string) => void
@@ -14,6 +15,7 @@ interface ReportStore {
   updateChange: (nr: number, patch: Partial<ParsedChange>) => void
   updateChecklist: (nr: number, patch: Partial<ChecklistItem>) => void
   setTestResult: (nr: number, content: string) => void
+  setVendorWarning: (show: boolean) => void
   resetReport: () => void
 }
 
@@ -33,6 +35,7 @@ export const useReportStore = create<ReportStore>((set) => ({
   changes: [],
   checklist: [],
   testResults: {},
+  vendorWarning: false,
 
   setMeta: (patch) =>
     set((s) => ({ meta: { ...s.meta, ...patch } })),
@@ -69,6 +72,8 @@ export const useReportStore = create<ReportStore>((set) => ({
   setTestResult: (nr, content) =>
     set((s) => ({ testResults: { ...s.testResults, [nr]: content } })),
 
+  setVendorWarning: (show) => set({ vendorWarning: show }),
+
   resetReport: () =>
-    set({ meta: DEFAULT_META, rawScope: '', changes: [], checklist: [], testResults: {} })
+    set({ meta: DEFAULT_META, rawScope: '', changes: [], checklist: [], testResults: {}, vendorWarning: false })
 }))
