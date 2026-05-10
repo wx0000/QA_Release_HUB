@@ -14,6 +14,7 @@ export function PdfPreview() {
   const [status, setStatus] = useState<Status>({ type: 'idle' })
   const meta = useReportStore(state => state.meta)
   const changes = useReportStore(state => state.changes)
+  const testResults = useReportStore(state => state.testResults)
 
   async function handleGeneratePdf() {
     if (changes.length === 0) {
@@ -24,7 +25,7 @@ export function PdfPreview() {
     setStatus({ type: 'loading' })
 
     try {
-      const pdfBase64 = await createPdfBase64(buildDocDefinition({ meta, changes }))
+      const pdfBase64 = await createPdfBase64(buildDocDefinition({ meta, changes, testResults }))
       const depNum = `R_01.00.${(meta.deploymentSuffix || 'XX').padStart(2, '0')}.00`
       const defaultFilename = `${depNum}_report.pdf`
 

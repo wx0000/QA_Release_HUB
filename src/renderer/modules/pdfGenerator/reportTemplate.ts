@@ -28,6 +28,26 @@ function cell(text: string, odd: boolean, extra?: object): TableCell {
   return { text, ...(odd ? { fillColor: ROW_ALT_FILL } : {}), ...extra }
 }
 
+function tiptapToText(json: string): string {
+  if (!json) return ''
+  try {
+    const texts: string[] = []
+    const walk = (node: Record<string, unknown>) => {
+      if (typeof node.text === 'string') texts.push(node.text)
+      if (Array.isArray(node.content)) {
+        (node.content as Record<string, unknown>[]).forEach(walk)
+      }
+    }
+    const doc = JSON.parse(json) as Record<string, unknown>
+    if (Array.isArray(doc.content)) {
+      (doc.content as Record<string, unknown>[]).forEach(walk)
+    }
+    return texts.join(' ').trim()
+  } catch {
+    return ''
+  }
+}
+
 const thinBorder = {
   hLineWidth: () => 0.5,
   vLineWidth: () => 0.5,
@@ -62,7 +82,7 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
       cell(c.type, odd),
       cell(c.changeDescription, odd),
       cell(c.ticket, odd),
-      cell(testResults[c.nr] ?? '', odd),
+      cell(tiptapToText(testResults[c.nr] ?? ''), odd),
       cell('POSITIVE', odd, { bold: true, color: '#16a34a' })
     ]
   })

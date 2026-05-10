@@ -19,8 +19,8 @@
 ## Current Status
 
 - **Version in dev:** v0.3.0
-- **Last completed:** ticket hyperlinks w TestCasesTable ✅ — vendor selektor + `<a href>` identyczny jak w ChangesTable; fallback ticket w ChangesTable z `<input>` na read-only `<span>`
-- **Next concrete task:** v0.3.0A — TipTap in "Current result", Ctrl+V screenshot, image drag & drop (then wire testResults into ReportData for PDF Section 2)
+- **Last completed:** pdfGenerator runtime fix ✅ — `.default` unwrap for both pdfmake and vfs_fonts dynamic imports
+- **Next concrete task:** v0.3.1 — draft persistence (useDraft auto-save testResults to JSON; reload on app start)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
@@ -342,6 +342,18 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-10 — pdfGenerator runtime fix
+- **`pdfGenerator.ts`:** fixed "addVirtualFileSystem is not a function" — bundler wraps both dynamic imports in `.default`; added `pdfMakeRaw`/`vfsFontsRaw` intermediates with `.default ?? raw` unwrap before use
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
+- **Tested manually:** requires Electron app with PDF generation flow
+
+### 2026-05-10 — wire testResults into PDF Section 2 (v0.3.0A complete)
+- **`reportTemplate.ts`:** added `tiptapToText` helper (full text extraction from TipTap JSON, no truncation); Section 2 "Current result" cell now uses `tiptapToText(testResults[c.nr] ?? '')` instead of raw JSON
+- **`PdfPreview.tsx`:** added `testResults` selector; passed to `buildDocDefinition`
+- **`TestCasesTable.tsx`:** fixed pre-existing `no-extra-semi` lint errors (unnecessary `;` before `(` inside `if` blocks)
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** n/a — requires Electron + TipTap content + PDF generation; golden path verified in prior session
 
 ### 2026-05-10 — ticket hyperlinks w TestCasesTable + ChangesTable fallback
 - **`TestCasesTable.tsx`:** dodano `vendor = useReportStore(state => state.meta.vendor)`; kolumna Ticket renderuje `<a href>` z `text-accent underline` gdy vendor+ticket, `<span>` gdy puste — identycznie jak ChangesTable

@@ -108,6 +108,7 @@ QAReleaseHUB/
 │   │   │   │   ├── ScopeInput.tsx
 │   │   │   │   ├── ChangesTable.tsx
 │   │   │   │   ├── TestCasesTable.tsx
+│   │   │   │   ├── ResultEditorModal.tsx
 │   │   │   │   └── PdfPreview.tsx
 │   │   │   ├── schedule/                   # Tab 2
 │   │   │   │   ├── ScheduleInput.tsx
@@ -947,6 +948,9 @@ Central registry. Add new channels here when creating new handlers.
 
 ## Changelog
 
+### [fix] — 2026-05-10 (pdfGenerator runtime)
+- `pdfGenerator.ts`: fixed "addVirtualFileSystem is not a function" — Vite/electron-vite wraps both `pdfmake/build/pdfmake` and `pdfmake/build/vfs_fonts` dynamic imports in `.default`; added intermediate `pdfMakeRaw`/`vfsFontsRaw` with `.default ?? raw` unwrap
+
 ### [docs] — 2026-05-09
 - CLAUDE.md Definition of Done: added mandatory "Code review" step (security, quality, project conventions) before commit message
 
@@ -954,6 +958,11 @@ Central registry. Add new channels here when creating new handlers.
 - `useDraft.ts`: useEffect missing `[]` fixed — interval was resetting on every render, autosave never fired; `saveDraft` now uses `useReportStore.getState()` instead of stale closure
 - Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
 - Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
+
+### [feat] — 2026-05-10 (v0.3.0A — testResults wired into PDF)
+- `reportTemplate.ts`: added `tiptapToText` helper — walks TipTap JSON, joins all text nodes (no truncation); Section 2 "Current result" column now renders actual editor content instead of raw JSON
+- `PdfPreview.tsx`: `testResults` selector added; passed to `buildDocDefinition`
+- `TestCasesTable.tsx`: fixed `no-extra-semi` lint errors in `extractPreview`
 
 ### [fix] — 2026-05-10
 - TestCasesTable: vendor selector + ticket hyperlink (identyczny jak ChangesTable)

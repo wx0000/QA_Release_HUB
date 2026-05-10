@@ -15,12 +15,12 @@ function extractPreview(json: string): string {
     const walk = (node: Record<string, unknown>) => {
       if (typeof node.text === 'string') texts.push(node.text)
       if (Array.isArray(node.content)) {
-        ;(node.content as Record<string, unknown>[]).forEach(walk)
+        (node.content as Record<string, unknown>[]).forEach(walk)
       }
     }
     const doc = JSON.parse(json) as Record<string, unknown>
     if (Array.isArray(doc.content)) {
-      ;(doc.content as Record<string, unknown>[]).forEach(walk)
+      (doc.content as Record<string, unknown>[]).forEach(walk)
     }
     const text = texts.join(' ').trim()
     if (text) return text.length > 55 ? text.slice(0, 52) + '…' : text
