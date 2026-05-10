@@ -28,39 +28,23 @@ function cell(text: string, odd: boolean, extra?: object): TableCell {
   return { text, ...(odd ? { fillColor: ROW_ALT_FILL } : {}), ...extra }
 }
 
-type TiptapNode = Record<string, unknown>
-
-function tiptapToContent(json: string): Content[] {
-  if (!json) return []
+function tiptapToText(json: string): string {
+  if (!json) return ''
   try {
-    const result: Content[] = []
-    const doc = JSON.parse(json) as TiptapNode
-    if (!Array.isArray(doc.content)) return []
-    for (const para of doc.content as TiptapNode[]) {
-      if (Array.isArray(para.content)) {
-        for (const node of para.content as TiptapNode[]) {
-          if (node.type === 'text' && typeof node.text === 'string') {
-            const marks = Array.isArray(node.marks)
-              ? (node.marks as Array<{ type: string }>)
-              : []
-            result.push({
-              text: node.text,
-              bold: marks.some(m => m.type === 'bold') || undefined,
-              italics: marks.some(m => m.type === 'italic') || undefined
-            } as Content)
-          } else if (node.type === 'image') {
-            const attrs = (node.attrs ?? {}) as Record<string, unknown>
-            if (typeof attrs.src === 'string') {
-              result.push({ image: attrs.src, width: 400 } as Content)
-            }
-          }
-        }
+    const texts: string[] = []
+    const walk = (node: Record<string, unknown>) => {
+      if (typeof node.text === 'string') texts.push(node.text)
+      if (Array.isArray(node.content)) {
+        (node.content as Record<string, unknown>[]).forEach(walk)
       }
-      result.push({ text: '\n' })
     }
-    return result
+    const doc = JSON.parse(json) as Record<string, unknown>
+    if (Array.isArray(doc.content)) {
+      (doc.content as Record<string, unknown>[]).forEach(walk)
+    }
+    return texts.join(' ').trim()
   } catch {
-    return []
+    return ''
   }
 }
 
@@ -98,10 +82,7 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
       cell(c.type, odd),
       cell(c.changeDescription, odd),
       cell(c.ticket, odd),
-      ({
-        stack: tiptapToContent(testResults[c.nr] ?? ''),
-        ...(odd ? { fillColor: ROW_ALT_FILL } : {})
-      }) as TableCell,
+      cell(tiptapToText(testResults[c.nr] ?? ''), odd),
       cell('POSITIVE', odd, { bold: true, color: '#16a34a' })
     ]
   })
