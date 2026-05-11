@@ -1,7 +1,7 @@
-import { FileText, Calendar, ListChecks, Sparkles, Activity } from 'lucide-react'
+import { FileText, Calendar, ListChecks, Sparkles, Activity, Monitor, ShieldCheck, CreditCard, Smartphone } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-export type TabId = 1 | 2 | 3 | 4 | 5
+export type TabId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 interface Tab {
   id: TabId
@@ -15,7 +15,11 @@ const TABS: Tab[] = [
   { id: 2, label: 'Deploy Schedule', icon: Calendar },
   { id: 3, label: 'Terminal Regression', icon: ListChecks },
   { id: 4, label: 'AIO TC-GEN', icon: Sparkles, badge: 'v0.8' },
-  { id: 5, label: 'Update Monitor', icon: Activity }
+  { id: 5, label: 'Update Monitor', icon: Activity },
+  { id: 6, label: 'Virtual Terminal', icon: Monitor, badge: 'v0.9' },
+  { id: 7, label: 'Limit Checker', icon: ShieldCheck, badge: 'v1.0' },
+  { id: 8, label: 'Card Reader', icon: CreditCard, badge: 'v1.1' },
+  { id: 9, label: 'Mobile App', icon: Smartphone, badge: 'v1.2' }
 ]
 
 interface TabBarProps {

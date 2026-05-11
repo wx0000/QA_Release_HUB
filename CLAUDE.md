@@ -18,9 +18,10 @@
 
 ## Current Status
 
-- **Version in dev:** v0.3.2 shipped; next is v0.4.0 Schedule tab
-- **Last completed:** v0.3.2 ✅ — auto-save dialog on startup + images in PDF (tiptapToCell)
-- **Next concrete task:** v0.4.0 — Schedule tab (ScheduleInput / ScheduleBuilder / ScheduleOutput)
+- **Version in dev:** v0.4.0 in progress (sesja A done)
+- **Last completed:** sesja A — ScheduleInput + ScheduleBuilder zaimplementowane
+- **Next concrete task:** v0.4.0 sesja B — ScheduleOutput (Loop Markdown, copy to clipboard, Clear)
+- **Tabs roadmap:** 9 tabs total — Tabs 1–5 defined, Tabs 6–9 added as placeholders (Virtual Terminal v0.9, Limit Checker v1.0, Card Reader v1.1, Mobile App v1.2)
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
@@ -342,6 +343,25 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-11 — v0.4.0 sesja A: ScheduleInput + ScheduleBuilder
+- **`ScheduleInput.tsx`:** textarea + "Parse schedule" button → `parseSchedule` → `setParsed`; po parsowaniu pokazuje Type + liczbę komponentów + liczbę wykrytych developerów
+- **`ScheduleBuilder.tsx`:** `PersonCard` (subcomponent inline) — checkbox lista komponentów z opcjonalnym polem notes; sekcja Developers (Type A: "+" button + usuwanie, Type B: auto z parsera bez usuwania); sekcja Testers (zawsze "+" button + usuwanie); stan w `scheduleStore.people` via `setPeople`
+- **`App.tsx`:** `ScheduleBuilder` dodany do `SchedulePage`; import dołączony
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` ✅ (30/30)
+- **Tested manually:** `npm run dev:browser` — do weryfikacji przez użytkownika
+
+### 2026-05-11 — Tabs 6–9: placeholder pages in App.tsx + TabBar.tsx
+- **`TabBar.tsx`:** `TabId` rozszerzony do `1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9`; dodano ikony `Monitor`, `ShieldCheck`, `CreditCard`, `Smartphone` z lucide-react; 4 nowe wpisy w `TABS` z badge v0.9/v1.0/v1.1/v1.2
+- **`App.tsx`:** 4 inline page functions (`VirtualTerminalPage`, `LimitCheckerPage`, `CardReaderPage`, `MobileAppPage`) wzorowane na `AITCGenPage`; zarejestrowane w `TAB_PAGES`; bez nowych plików .tsx
+- **Checks:** `npm run type-check` ✅ · `npm run lint` ✅
+- **Tested manually:** `npm run dev:browser` — do weryfikacji przez użytkownika
+
+### 2026-05-11 — roadmap: Tabs 6–9 added as placeholders (docs only)
+- **`PROJECT.md`:** architecture diagram extended with Tabs 6–9; TAB 6–9 placeholder entries added in Functional Scope (after TAB 5); v0.9.0–v1.2.0 entries added in Roadmap (after v0.8.0); v0.9.0–v1.2.0 Acceptance Criteria stubs added; `*Last updated*` bumped to 2026-05-11
+- **`CLAUDE.md`:** Current Status updated — new "Tabs roadmap" line notes 9 tabs total, Tabs 6–9 as doc-only placeholders
+- **Checks:** n/a (docs only)
+- **Tested manually:** n/a
 
 ### 2026-05-10 — v0.3.2: auto-save dialog + images in PDF
 - **`DraftRestoreDialog.tsx`** (nowy): modal "Draft detected" z przyciskami Load/Discard; pokazuje sformatowaną datę zapisu; `formatSavedAt` jako helper

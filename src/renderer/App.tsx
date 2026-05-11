@@ -14,6 +14,7 @@ import { PdfPreview } from './components/report/PdfPreview'
 
 // Tab 2 — Deploy Schedule
 import { ScheduleInput } from './components/schedule/ScheduleInput'
+import { ScheduleBuilder } from './components/schedule/ScheduleBuilder'
 
 // Tab 3 — Terminal Regression
 import { RegressionSetup } from './components/regression/RegressionSetup'
@@ -37,6 +38,7 @@ function SchedulePage() {
   return (
     <PageWrapper title="Deployment Schedule">
       <ScheduleInput />
+      <ScheduleBuilder />
     </PageWrapper>
   )
 }
@@ -68,12 +70,60 @@ function MonitorPage() {
   )
 }
 
+function VirtualTerminalPage() {
+  return (
+    <PageWrapper title="Virtual Terminal" badge="v0.9">
+      <div className="rounded-xl border border-dashed border-border-light p-12 text-center">
+        <p className="text-text-muted">Virtual Terminal — v0.9.0</p>
+        <p className="text-text-muted text-xs mt-1">Details to be defined in a separate session.</p>
+      </div>
+    </PageWrapper>
+  )
+}
+
+function LimitCheckerPage() {
+  return (
+    <PageWrapper title="Limit Checker" badge="v1.0">
+      <div className="rounded-xl border border-dashed border-border-light p-12 text-center">
+        <p className="text-text-muted">Limit Checker — v1.0.0</p>
+        <p className="text-text-muted text-xs mt-1">Details to be defined in a separate session.</p>
+      </div>
+    </PageWrapper>
+  )
+}
+
+function CardReaderPage() {
+  return (
+    <PageWrapper title="Card Reader" badge="v1.1">
+      <div className="rounded-xl border border-dashed border-border-light p-12 text-center">
+        <p className="text-text-muted">Card Reader — v1.1.0</p>
+        <p className="text-text-muted text-xs mt-1">Details to be defined in a separate session.</p>
+      </div>
+    </PageWrapper>
+  )
+}
+
+function MobileAppPage() {
+  return (
+    <PageWrapper title="Mobile App" badge="v1.2">
+      <div className="rounded-xl border border-dashed border-border-light p-12 text-center">
+        <p className="text-text-muted">Mobile App — v1.2.0</p>
+        <p className="text-text-muted text-xs mt-1">Details to be defined in a separate session.</p>
+      </div>
+    </PageWrapper>
+  )
+}
+
 const TAB_PAGES: Record<TabId, () => JSX.Element> = {
   1: ReportPage,
   2: SchedulePage,
   3: RegressionPage,
   4: AITCGenPage,
-  5: MonitorPage
+  5: MonitorPage,
+  6: VirtualTerminalPage,
+  7: LimitCheckerPage,
+  8: CardReaderPage,
+  9: MobileAppPage
 }
 
 export default function App() {

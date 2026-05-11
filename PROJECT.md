@@ -61,6 +61,12 @@ A desktop application replacing manual tools used during deployments:
 │  │Generator │Schedule  │Regression│  TC-GEN  │ Update   │          │
 │  │+Checklist│          │          │  (v0.8)  │ Monitor  │          │
 │  └──────────┴──────────┴──────────┴──────────┴──────────┘          │
+│  ┌──────────┬──────────┬──────────┬──────────┐                     │
+│  │  Tab 6:  │  Tab 7:  │  Tab 8:  │  Tab 9:  │                     │
+│  │ Virtual  │  Limit   │  Card    │  Mobile  │                     │
+│  │ Terminal │ Checker  │  Reader  │   App    │                     │
+│  │  (v0.9)  │  (v1.0)  │  (v1.1)  │  (v1.2)  │                     │
+│  └──────────┴──────────┴──────────┴──────────┘                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                   DATA LAYER (local JSON)                            │
 │  userData/config.json     — settings, tester list, API config       │
@@ -561,6 +567,26 @@ One row = one update package:
 
 ---
 
+### TAB 6: Virtual Terminal (v0.9+)
+Details to be defined in a separate session.
+
+---
+
+### TAB 7: Limit Checker (v1.0+)
+Details to be defined in a separate session.
+
+---
+
+### TAB 8: Card Reader (v1.1+)
+Details to be defined in a separate session.
+
+---
+
+### TAB 9: Mobile App (v1.2+)
+Details to be defined in a separate session.
+
+---
+
 ## Input Data Format — Parsers
 
 ### Parser 1: Deployment scope (scopeParser)
@@ -867,7 +893,7 @@ Central registry. Add new channels here when creating new handlers.
 - [x] GitHub repo: main + dev, .gitignore, README.md
 - [x] CI: .github/workflows/ci.yml (lint + type-check)
 - [x] Custom TitleBar
-- [x] Sidebar navigation: 5 tabs (Tab 2, 3, 4, 5 as placeholders)
+- [x] Sidebar navigation: 9 tabs (Tab 2, 3, 4, 5 as placeholders; Tabs 6–9 added later as placeholders)
 - [x] UI components: Button, Input, Checkbox, Textarea
 - [x] MetaForm — all fields
 - [x] DatePicker — calendar popup
@@ -889,11 +915,11 @@ Central registry. Add new channels here when creating new handlers.
 - [x] Auto-save + load dialog on startup
 
 ### v0.4.0 — Schedule (Tab 2)
-- [ ] scheduleParser: Type A + Type B + tests
-- [ ] ScheduleInput: textarea + Parse
-- [ ] ScheduleBuilder: developers + component assignment
-- [ ] ScheduleBuilder: dynamic testers ("+" button)
-- [ ] ScheduleBuilder: notes per component
+- [x] scheduleParser: Type A + Type B + tests
+- [x] ScheduleInput: textarea + Parse
+- [x] ScheduleBuilder: developers + component assignment
+- [x] ScheduleBuilder: dynamic testers ("+" button)
+- [x] ScheduleBuilder: notes per component
 - [ ] ScheduleOutput: Loop Markdown format
 - [ ] "Copy to clipboard" + toast
 - [ ] "Clear" → reset Tab 2
@@ -941,6 +967,18 @@ Central registry. Add new channels here when creating new handlers.
 ### v0.8.0 — AIO TC-GEN (Tab 4)
 - [ ] Details to be defined
 
+### v0.9.0 — Virtual Terminal (Tab 6)
+- [ ] Details to be defined
+
+### v1.0.0 — Limit Checker (Tab 7)
+- [ ] Details to be defined
+
+### v1.1.0 — Card Reader (Tab 8)
+- [ ] Details to be defined
+
+### v1.2.0 — Mobile App (Tab 9)
+- [ ] Details to be defined
+
 ### Backlog
 - [ ] Dark/light mode toggle
 - [ ] PDF preview before saving
@@ -949,6 +987,16 @@ Central registry. Add new channels here when creating new handlers.
 ---
 
 ## Changelog
+
+### [feat] — 2026-05-11 (v0.4.0 sesja A — ScheduleInput + ScheduleBuilder)
+- `ScheduleInput.tsx`: textarea bound to store `rawInput`; "Parse schedule" button calls `parseSchedule` and writes result to store via `setParsed`; shows Type A/B, component count, and detected developer count after parse
+- `ScheduleBuilder.tsx`: `PersonCard` inline subcomponent with checkbox list of all parsed components and optional notes input (notes shown only for developers); Developers section — Type A: "+" button + remove; Type B: auto-populated from parser (no remove); Testers section — always "+" button + remove; all state in `scheduleStore.people` via `setPeople`; Enter key in name inputs confirms add
+- `App.tsx`: `ScheduleBuilder` imported and added to `SchedulePage`
+
+### [chore] — 2026-05-11 (Tabs 6–9 placeholders)
+- `TabBar.tsx`: `TabId` extended to `1–9`; added `Monitor`, `ShieldCheck`, `CreditCard`, `Smartphone` icons from lucide-react; 4 new entries in `TABS` with badges v0.9–v1.2
+- `App.tsx`: 4 inline page functions (`VirtualTerminalPage`, `LimitCheckerPage`, `CardReaderPage`, `MobileAppPage`) following `AITCGenPage` pattern; registered in `TAB_PAGES`
+- `PROJECT.md`: architecture diagram, Functional Scope (TAB 6–9), Roadmap (v0.9.0–v1.2.0), and Acceptance Criteria updated with placeholder entries
 
 ### [0.3.2] — 2026-05-10
 - `DraftRestoreDialog.tsx` (new): modal "Draft detected" shown on app startup when a previous session's draft contains meaningful data; Load/Discard actions; displays formatted save timestamp
@@ -1124,9 +1172,9 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [x] Auto-save: draft saved, dialog on restart
 
 ### v0.4.0 — DONE when:
-- [ ] Schedule Type A → correct structure in ScheduleBuilder
-- [ ] Schedule Type B → developer names detected automatically
-- [ ] Can add 1–3 testers dynamically
+- [x] Schedule Type A → correct structure in ScheduleBuilder
+- [x] Schedule Type B → developer names detected automatically
+- [x] Can add 1–3 testers dynamically
 - [ ] "Copy to clipboard" → text in Loop format with checkboxes
 - [ ] Pasting in Teams/Loop renders checkboxes correctly
 - [ ] "Clear" resets Tab 2
@@ -1156,7 +1204,19 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [ ] Base URL + login saved in config.json after restart
 - [ ] Password never appears in any file on disk
 
+### v0.9.0 — DONE when:
+- [ ] Details to be defined
+
+### v1.0.0 — DONE when:
+- [ ] Details to be defined
+
+### v1.1.0 — DONE when:
+- [ ] Details to be defined
+
+### v1.2.0 — DONE when:
+- [ ] Details to be defined
+
 ---
 
-*Last updated: 2026-05-09*
+*Last updated: 2026-05-11 (v0.4.0 sesja A)*
 *Project: QA Release HUB*
