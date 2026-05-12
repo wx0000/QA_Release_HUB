@@ -344,6 +344,47 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-13 — Roadmap expansion + git history rewrite (docs + ops)
+
+**Strategic session (Claude.ai):**
+- Roadmap expanded from v0.1–v0.8 to v0.1–v1.0 with 11 functional tabs across 5 categories
+- Tab 6 (AIO TC-GEN) promoted to v0.4 as CV killer feature
+- Tab 3 split into 3a (Android Terminal) and 3b (Embedded Terminal)
+- Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit`
+- Settings demoted from sidebar tab to gear menu in TitleBar
+- New ADRs: 014 (Tab 3 split), 015 (Hardware extraction), 016 (gear menu), 017 (secureCredentialStore)
+- Generic naming throughout: Android/Embedded Terminal, no internal API names
+- PROJECT.md fully rewritten in English to match actual repo state
+
+**Files changed in commit `0aabcfa` (merged to main):**
+- `PROJECT.md` — full rewrite (955 lines, +736/-887 vs previous)
+- `CHANGELOG.md` — [Unreleased] section added describing strategic decisions
+- `.gitignore` — added `*.backup-*` and `NEW/`
+
+**Operational session (git history rewrite):**
+- Configured global git: `user.name = wx0000`, `user.email = 37546801+wx0000@users.noreply.github.com`
+- Ran `git filter-repo --mailmap` to rewrite all 35 commits + 1 tag (v0.1.0) from `wx0000@wx-2.local` author/committer → GitHub noreply
+- Verified: distinct emails after rewrite = 1 (noreply only); commit count preserved (35→35); content identical to pre-rewrite backup (diff -r empty for tracked files)
+- Force-pushed: `main` (--force-with-lease), `v0.1.0` tag, `docs/roadmap-expansion-2026-05-12` branch
+- Manual verification on GitHub: ✅ avatar attached to all commits, ✅ Contributors page shows 35 commits, ✅ contribution graph (green squares) populated for May 2026
+
+**Checks:**
+- `npm run lint` ✅
+- `npm run type-check` ✅
+- `npx vitest run` ✅ 30/30 (scopeParser 27, scheduleParser 3)
+
+**Decisions / lessons learned:**
+- For a portfolio repo at solo-dev scale, history rewrite is worth the destructive ops to get clean author linkage from the start — value compounds with every future commit
+- `git filter-repo --mailmap` + `--force-with-lease` push is the safe modern pattern (vs deprecated `filter-branch`)
+- Pre-rewrite full local clone backup is non-negotiable insurance
+
+**Next task:**
+v0.4.0 — Tab 6 AIO TC-GEN (LLM-based test case generator). Open architectural questions to resolve at session start:
+1. LLM provider default (Claude vs OpenAI) — likely Claude
+2. API key storage: encrypted in config.json vs RAM-only vs OS keychain
+3. Prompt template versioning strategy
+4. Cost guardrails: max tokens per call, monthly budget warning
+
 ### 2026-05-11 — v0.4.0 sesja A: ScheduleInput + ScheduleBuilder
 - **`ScheduleInput.tsx`:** textarea + "Parse schedule" button → `parseSchedule` → `setParsed`; po parsowaniu pokazuje Type + liczbę komponentów + liczbę wykrytych developerów
 - **`ScheduleBuilder.tsx`:** `PersonCard` (subcomponent inline) — checkbox lista komponentów z opcjonalnym polem notes; sekcja Developers (Type A: "+" button + usuwanie, Type B: auto z parsera bez usuwania); sekcja Testers (zawsze "+" button + usuwanie); stan w `scheduleStore.people` via `setPeople`
