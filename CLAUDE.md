@@ -18,10 +18,19 @@
 
 ## Current Status
 
-- **Version in dev:** v0.4.0 in progress (sesja A done)
-- **Last completed:** sesja A — ScheduleInput + ScheduleBuilder zaimplementowane
-- **Next concrete task:** v0.4.0 sesja B — ScheduleOutput (Loop Markdown, copy to clipboard, Clear)
-- **Tabs roadmap:** 9 tabs total — Tabs 1–5 defined, Tabs 6–9 added as placeholders (Virtual Terminal v0.9, Limit Checker v1.0, Card Reader v1.1, Mobile App v1.2)
+- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator, CV killer feature)
+- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
+- **Next concrete task:** v0.4.0 — Tab 6 AIO TC-GEN. Open architectural questions to resolve at session start:
+  1. LLM provider default (Claude vs OpenAI) — likely Claude
+  2. API key storage: encrypted in `config.json` vs RAM-only vs OS keychain
+  3. Prompt template versioning strategy
+  4. Cost guardrails: max tokens per call, monthly budget warning
+- **Tabs roadmap:** 11 functional tabs across 5 categories — full breakdown in `PROJECT.md` § Functional Scope. Notable:
+  - Tab 3 split into 3a (Android Terminal Regression) and 3b (Embedded Terminal Regression) — ADR-014
+  - Tab 6 (AIO TC-GEN) promoted from v0.9 placeholder to v0.4 as CV killer feature
+  - Tab 2 (Deployment Schedule) demoted from v0.4 to v0.8 — sesja A done, Loop output / clipboard / clear deferred
+  - Settings moved from sidebar tab to gear menu in TitleBar — ADR-016
+  - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit` — ADR-015
 - **Blockers:** none
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
