@@ -1,7 +1,7 @@
 # QA Release HUB — Project Documentation
 
 > Desktop hub for managing QA deployments.
-> PDF report generation, test checklists, deployment schedules, terminal update monitoring.
+> PDF report generation, deployment schedules, terminal regression testing, terminal update monitoring, AI-augmented test case generation, diagnostic and backend integration tools.
 > Stack: Electron + React + TypeScript + Tailwind CSS + Vite
 
 ---
@@ -24,9 +24,10 @@
 14. [Testing Strategy](#testing-strategy)
 15. [IPC Channels Contract](#ipc-channels-contract)
 16. [TODO / Roadmap](#todo--roadmap)
-17. [Changelog](#changelog)
-18. [Architectural Decision Records (ADR)](#architectural-decision-records-adr)
-19. [Acceptance Criteria per Version](#acceptance-criteria-per-version)
+17. [Companion App: Terminal Hardware Toolkit](#companion-app-terminal-hardware-toolkit)
+18. [Changelog](#changelog)
+19. [Architectural Decision Records (ADR)](#architectural-decision-records-adr)
+20. [Acceptance Criteria per Version](#acceptance-criteria-per-version)
 
 ---
 
@@ -37,43 +38,54 @@ A desktop application replacing manual tools used during deployments:
 - Notepad notes per fix/mod to be tested
 - Manually creating schedules in Teams/Loop
 - Manually checking update statuses on terminals via a web panel
+- Manually crafting test cases from fix/mod descriptions
+- Switching between scattered diagnostic utilities (log parsers, parameter parsers, QR generators, SQL clients)
+- Manually managing backend lookups (card history, partner data) through external web panels
 
 **Target user:** Software Tester (QA)
 **PDF report recipient:** Senior manager (review only)
 **Schedule recipient:** Developers + Testers on the deployment call
+**Test case generator (Tab 6):** Used by the tester themselves to accelerate fix/mod analysis with LLM assistance
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        ELECTRON (main)                               │
-│  - Application window (no system frame — custom titlebar)            │
-│  - IPC handlers: PDF export, file save, JSON store,                  │
-│                  terminal API calls (auth + updates)                 │
-│  - electron-builder → .exe                                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                     REACT + VITE (renderer)                          │
-│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐          │
-│  │  Tab 1:  │  Tab 2:  │  Tab 3:  │  Tab 4:  │  Tab 5:  │          │
-│  │ Report   │ Deploy.  │Terminal  │  AIO     │ Terminal │          │
-│  │Generator │Schedule  │Regression│  TC-GEN  │ Update   │          │
-│  │+Checklist│          │          │  (v0.8)  │ Monitor  │          │
-│  └──────────┴──────────┴──────────┴──────────┴──────────┘          │
-│  ┌──────────┬──────────┬──────────┬──────────┐                     │
-│  │  Tab 6:  │  Tab 7:  │  Tab 8:  │  Tab 9:  │                     │
-│  │ Virtual  │  Limit   │  Card    │  Mobile  │                     │
-│  │ Terminal │ Checker  │  Reader  │   App    │                     │
-│  │  (v0.9)  │  (v1.0)  │  (v1.1)  │  (v1.2)  │                     │
-│  └──────────┴──────────┴──────────┴──────────┘                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                   DATA LAYER (local JSON)                            │
-│  userData/config.json     — settings, tester list, API config       │
-│  userData/drafts/         — report drafts (auto-save)               │
-│  userData/history/        — report history (metadata)               │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          ELECTRON (main)                              │
+│  - Application window (no system frame — custom titlebar)             │
+│  - IPC handlers:                                                      │
+│    * PDF export, file save, JSON store                                │
+│    * Terminal API calls (auth + updates)                              │
+│    * LLM API calls (Tab 6 — AIO TC-GEN)                              │
+│    * MSSQL queries (Tab 10)                                           │
+│    * Generic backend API bridge (Tabs 11–12)                         │
+│  - electron-builder → .exe                                            │
+├──────────────────────────────────────────────────────────────────────┤
+│                       REACT + VITE (renderer)                         │
+│  Category A — Release Management   │ Tab 1: Report Generator         │
+│                                    │ Tab 2: Deployment Schedule      │
+│  ──────────────────────────────────┼─────────────────────────────────│
+│  Category B — Terminal Testing     │ Tab 3a: Android Terminal Reg.   │
+│                                    │ Tab 3b: Embedded Terminal Reg.  │
+│                                    │ Tab 4: Update Monitor           │
+│  ──────────────────────────────────┼─────────────────────────────────│
+│  Category C — TC Generator         │ Tab 6: AIO TC-GEN (LLM)         │
+│  ──────────────────────────────────┼─────────────────────────────────│
+│  Category D — Diagnostic Tools     │ Tab 7: System Log Parser        │
+│                                    │ Tab 8: Parameter Parser         │
+│                                    │ Tab 9: QRCode Generator         │
+│                                    │ Tab 10: SQL Query               │
+│  ──────────────────────────────────┼─────────────────────────────────│
+│  Category E — Backend Integrations │ Tab 11: Card Management         │
+│                                    │ Tab 12: Partner Management      │
+│  ──────────────────────────────────┴─────────────────────────────────│
+│  System area (gear icon in TitleBar): Settings / Presets / History    │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+Hardware-level integrations (Printer, Cashier, Flasher, Card Reader) are **out of scope for this app** — they are intentionally extracted to a separate companion app `Terminal Hardware Toolkit` (see ADR-015). This separation keeps QA Release HUB free of native USB / serial / driver dependencies.
 
 ---
 
@@ -81,85 +93,71 @@ A desktop application replacing manual tools used during deployments:
 
 ```
 QAReleaseHUB/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                          # lint + type-check on push
 ├── src/
-│   ├── main/                               # Electron main process
-│   │   ├── index.ts                        # Electron entry point
-│   │   ├── ipc/
-│   │   │   ├── pdf.handler.ts              # PDF generation
-│   │   │   ├── store.handler.ts            # JSON read/write
-│   │   │   ├── excel.handler.ts            # Excel generation (openpyxl via Python)
-│   │   │   └── terminalMonitor.handler.ts  # auth + terminal API fetch
-│   │   └── store/
-│   │       └── jsonStore.ts                # JSON file handling in userData
-│   ├── renderer/                           # React app
-│   │   ├── index.html
-│   │   ├── main.tsx
-│   │   ├── App.tsx                         # tab routing
-│   │   ├── components/
-│   │   │   ├── ui/                         # generic components
-│   │   │   │   ├── Button.tsx
-│   │   │   │   ├── Input.tsx
-│   │   │   │   ├── DatePicker.tsx
-│   │   │   │   ├── Checkbox.tsx
-│   │   │   │   └── Textarea.tsx
-│   │   │   ├── layout/
-│   │   │   │   ├── TitleBar.tsx
-│   │   │   │   ├── Sidebar.tsx
-│   │   │   │   └── PageWrapper.tsx
-│   │   │   ├── report/                     # Tab 1
-│   │   │   │   ├── MetaForm.tsx
-│   │   │   │   ├── ScopeInput.tsx
-│   │   │   │   ├── ChangesTable.tsx
-│   │   │   │   ├── TestCasesTable.tsx
-│   │   │   │   ├── ResultEditorModal.tsx
-│   │   │   │   └── PdfPreview.tsx
-│   │   │   ├── schedule/                   # Tab 2
-│   │   │   │   ├── ScheduleInput.tsx
-│   │   │   │   ├── ScheduleBuilder.tsx
-│   │   │   │   └── ScheduleOutput.tsx
-│   │   │   ├── regression/                 # Tab 3
-│   │   │   │   ├── RegressionSetup.tsx
-│   │   │   │   ├── RegressionChecklist.tsx
-│   │   │   │   └── RegressionProgress.tsx
-│   │   │   └── terminalMonitor/            # Tab 5
-│   │   │       ├── MonitorAuth.tsx
-│   │   │       ├── MonitorQuery.tsx
-│   │   │       ├── MonitorSummary.tsx
-│   │   │       ├── MonitorTable.tsx
-│   │   │       └── MonitorHistory.tsx
-│   │   ├── hooks/
-│   │   │   ├── useDraft.ts
-│   │   │   ├── useTesters.ts
-│   │   │   └── useSchedule.ts
-│   │   ├── modules/
-│   │   │   ├── parser/
-│   │   │   │   ├── scopeParser.ts
-│   │   │   │   ├── scopeParser.test.ts
-│   │   │   │   ├── scheduleParser.ts
-│   │   │   │   └── scheduleParser.test.ts
-│   │   │   └── pdfGenerator/
-│   │   │       ├── reportTemplate.ts
-│   │   │       └── pdfGenerator.ts
-│   │   ├── data/                           # JSON test cases (versioned in repo)
-│   │   │   ├── regression-terminal-a.json
-│   │   │   └── regression-terminal-b.json
-│   │   ├── store/
-│   │   │   ├── reportStore.ts
-│   │   │   ├── scheduleStore.ts
-│   │   │   ├── regressionStore.ts
-│   │   │   └── terminalMonitorStore.ts
-│   │   ├── types/
-│   │   │   ├── report.types.ts
-│   │   │   ├── schedule.types.ts
-│   │   │   ├── regression.types.ts
-│   │   │   └── terminalMonitor.types.ts
-│   │   ├── constants/
-│   │   │   └── index.ts                    # all app-wide constants (UPPER_SNAKE_CASE)
-│   │   └── styles/
-│   │       └── globals.css
+│   ├── main/
+│   │   ├── index.ts
+│   │   └── ipc/
+│   │       ├── pdf.handler.ts
+│   │       ├── store.handler.ts
+│   │       ├── terminalMonitor.handler.ts
+│   │       ├── llm.handler.ts                # Tab 6
+│   │       ├── sql.handler.ts                # Tab 10
+│   │       ├── backendBridge.handler.ts      # Tabs 11–12 (generic)
+│   │       └── jsonStore.ts
+│   ├── preload/
+│   │   └── index.ts
+│   └── renderer/
+│       ├── App.tsx
+│       ├── main.tsx
+│       ├── index.html
+│       ├── components/
+│       │   ├── ui/                           # Button, Input, DatePicker, Checkbox, Textarea, etc.
+│       │   ├── layout/                       # TitleBar (with gear menu), TabBar, PageWrapper
+│       │   ├── report/                       # Tab 1
+│       │   ├── schedule/                     # Tab 2
+│       │   ├── regression/
+│       │   │   ├── android/                  # Tab 3a
+│       │   │   └── embedded/                 # Tab 3b
+│       │   ├── terminalMonitor/              # Tab 4
+│       │   ├── tcGen/                        # Tab 6
+│       │   ├── diagnostic/
+│       │   │   ├── logParser/                # Tab 7
+│       │   │   ├── parameterParser/          # Tab 8
+│       │   │   ├── qrCodeGenerator/          # Tab 9
+│       │   │   └── sqlQuery/                 # Tab 10
+│       │   ├── integrations/
+│       │   │   ├── cardManagement/           # Tab 11
+│       │   │   └── partnerManagement/        # Tab 12
+│       │   └── settings/                     # gear menu — presets, history, app config
+│       ├── data/
+│       │   ├── regression-terminal-android.json
+│       │   └── regression-terminal-embedded.json
+│       ├── modules/
+│       │   ├── parser/
+│       │   │   ├── scopeParser.ts
+│       │   │   └── scheduleParser.ts
+│       │   └── pdfGenerator/
+│       │       ├── reportTemplate.ts
+│       │       └── pdfGenerator.ts
+│       ├── store/
+│       │   ├── reportStore.ts
+│       │   ├── scheduleStore.ts
+│       │   ├── regressionStore.ts            # holds both Android + Embedded sessions
+│       │   ├── terminalMonitorStore.ts
+│       │   ├── tcGenStore.ts
+│       │   ├── secureCredentialStore.ts      # RAM-only credentials (ADR-017)
+│       │   └── settingsStore.ts
+│       ├── types/
+│       │   ├── report.types.ts
+│       │   ├── schedule.types.ts
+│       │   ├── regression.types.ts
+│       │   ├── terminalMonitor.types.ts
+│       │   ├── tcGen.types.ts
+│       │   └── integrations.types.ts
+│       ├── constants/
+│       │   └── index.ts                      # all app-wide constants (UPPER_SNAKE_CASE)
+│       └── styles/
+│           └── globals.css
 ├── electron.vite.config.ts
 ├── package.json
 ├── tsconfig.json
@@ -187,7 +185,9 @@ QAReleaseHUB/
 | Rich text editor | TipTap | Inline image paste from clipboard, extensible |
 | PDF generation | pdfmake | Pure JS, tables + base64 images, no Chromium |
 | Excel generation | openpyxl (Python IPC) | Full formatting control, emoji, hyperlinks |
-| HTTP (main process) | Node.js fetch / axios | Terminal API calls via IPC, no CORS |
+| HTTP (main process) | Node.js fetch / axios | Terminal API + LLM calls via IPC, no CORS |
+| LLM API | Claude / OpenAI HTTP API | Tab 6 — TC generation from fix/mod descriptions |
+| MSSQL driver | `mssql` (tedious) via IPC | Tab 10 — SQL query module |
 | Persistence | JSON (electron userData) | Simple scale, no need for SQLite |
 | Unit tests | Vitest | Vite-compatible, fast |
 | Linting | ESLint + Prettier | Code consistency |
@@ -199,391 +199,342 @@ QAReleaseHUB/
 
 ### ADR-012: Slate Pro dark layout
 
-After evaluating four dark-mode layout concepts (Obsidian Dark, Slate Pro, Zinc Minimal, Glass Dark), **Slate Pro** was selected as the application's visual design.
+After evaluating four dark-mode layout concepts (Obsidian Dark, Slate Pro, Zinc Minimal, Glass Dark), **Slate Pro** was selected.
 
-**Color palette:**
+Key parameters: background `#0f172a`, cards `#1e293b`, accent `#06b6d4` (cyan), left sidebar navigation.
 
-| Token | Value | Usage |
-|---|---|---|
-| Background primary | `#0f172a` | Main window background |
-| Background secondary | `#1e293b` | Cards, sidebar, table rows |
-| Background tertiary | `#0a1120` | Sidebar, footer, topbar |
-| Accent / interactive | `#06b6d4` | Active states, primary buttons, badges, links |
-| Border | `#1e293b` / `#263548` | Dividers, card borders |
-| Text primary | `#e2e8f0` | Headings, active labels |
-| Text secondary | `#94a3b8` | Body text, field labels |
-| Text muted | `#475569` | Placeholders, inactive items |
-| Success | `#4ade80` | PASS status, "Done" |
-| Warning | `#facc15` | "In Review", auto-refresh indicator |
-| Danger | `#f87171` | FAIL status, error states |
+Reason: sidebar scales better than top tabs as the app grows — and with 11 functional tabs after the v0.4 → v0.14 roadmap, top tabs would not fit. Navy base provides strong contrast for status badges without glass/blur complexity.
 
-**Layout:**
-- Left sidebar (200px fixed) with icon + label navigation for all 5 tabs
-- Top bar per tab: tab title + deployment number tag + auto-save timestamp
-- Content area: metric cards row → section label → data table
-- Footer: action buttons (right-aligned), separated by top border
-- No system window frame — custom `TitleBar` component with traffic light controls
-
-**Rationale:** Sidebar navigation scales better than top tabs as the app grows (settings, history in v0.7+). The navy blue base (`#0f172a`) with cyan accent provides strong contrast for status badges (PASS/FAIL/SKIP, update pipeline states) without the visual noise of glass/blur effects.
+Trade-off: slightly more complex initial layout — acceptable given long-term ergonomic benefit.
 
 ---
 
 ## Conventions
 
-### Commit messages (Conventional Commits)
-
-```
-feat(parser): add Type B schedule support
-feat(report): implement test checklist
-feat(monitor): implement Tab 5 — Terminal Update Monitor
-fix(pdf): fix table margins for test cases
-fix(schedule): parser failed to detect Roman numeral numbering
-fix(monitor): handle expired Bearer token
-chore(deps): update pdfmake to v0.2.x
-docs(project): update TODO after v0.2.0 session
-refactor(store): extract tester logic to useTesters
-test(parser): edge case — schedule without Type B substeps
-```
-
-### Naming conventions
-
-| Thing | Convention | Example |
-|-------|-----------|---------|
-| React components | PascalCase.tsx | `MonitorTable.tsx` |
-| Hooks | useCamelCase.ts | `useDraft.ts` |
-| Utilities / helpers | camelCase.ts | `scopeParser.ts` |
-| Types / interfaces | PascalCase | `DeviceUpdate`, `IpcResult` |
-| Constants | UPPER_SNAKE_CASE | `AUTO_REFRESH_INTERVALS` |
-| IPC channels | domain:action | `monitor:login` |
-| Event handlers | handle + Noun | `handleParseScope` |
-| Test files | alongside source | `scopeParser.test.ts` |
-
-### Code rules
-
-- Zero `any` in TypeScript — use `unknown` and narrow, or define the type
-- No hardcoded values used in more than one place — extract to `src/renderer/constants/index.ts`
-- Components: max 200 lines — if approaching 180, extract a subcomponent or hook
-- Every new business logic module (parser, generator, helper) = matching `.test.ts` file
-- No `// this function does X` comments — names must explain intent
-- `npm run lint` and `npm run type-check` must pass after every session
-
-### Branching
-
-```
-main          — stable releases (tags v0.x.0)
-dev           — active development
-feature/xxx   — new features
-fix/xxx       — bug fixes
-```
+- **TypeScript:** zero `any`, always proper type or `unknown`
+- **Constants:** no hardcoded values in components — all in `src/renderer/constants/index.ts`
+- **Component size:** max 200 lines per React component — split if exceeded
+- **Tests:** every logical module (parser, generator, helper) ships with a `.test.ts` file
+- **No code comments** explaining what code does — code is self-documenting through naming. Comments only for non-obvious reasoning (e.g. ADR references, edge case explanations).
+- **Lint + type-check** must pass at the end of every session
+- **Privacy / public-repo safety:**
+  - No real company data in code or tests
+  - Tickets in examples: `PROJ-1234`, `PROJ-5678`
+  - URLs in examples: `https://api.example.com`
+  - Person names in examples: `Developer A`, `Tester A`
+  - Terminal names in examples and UI: `Android Terminal` / `Embedded Terminal` (no real vendor names)
+  - Internal API names: never used — always generic descriptions
+  - Component names in tests: `ComponentA`, `ComponentB`
+  - Generic API field values: `deviceId: 12345`, `login: "qa-user"`
 
 ---
 
 ## Versioning
 
-Format: `MAJOR.MINOR.PATCH` (Semantic Versioning)
+Semantic Versioning (`MAJOR.MINOR.PATCH`):
+- **MAJOR** — breaking changes
+- **MINOR** — completed roadmap milestone (v0.1, v0.2, ... v1.0)
+- **PATCH** — bug fixes, small additions within a minor version
 
-- `MAJOR` — breaking change in data format
-- `MINOR` — new feature / new module
-- `PATCH` — bugfix, minor UX improvement
-
-PATCH is incremented for bugfixes and small additions within a MINOR version.
-
-Git tags: `v0.1.0`, `v0.2.0` etc.
-
-Each release:
-1. Update `CHANGELOG.md`
-2. Run `npm version minor` (or `patch`)
-3. Create Git tag
-4. Update roadmap status in `PROJECT.md` and `CLAUDE.md`
+Every minor milestone:
+1. `npm version minor` (bumps `package.json` and creates git tag)
+2. Update `CHANGELOG.md`
+3. Update `PROJECT.md` roadmap section
 
 ---
 
 ## Development Setup
 
 ```bash
-npm install          # install dependencies
-npm run dev          # dev mode: Electron + React with HMR
-npm run type-check   # TypeScript type checking
-npm run test         # unit tests (Vitest)
-npm run lint         # ESLint
-npm run build        # production build
-npm run package      # package to .exe
+npm install
+npm run dev               # Electron app with HMR
+npm run dev:browser       # Renderer-only preview in browser (faster UI iteration)
+npm run lint
+npm run type-check
+npm run test
+npm run build             # Production bundle
+npm run dist              # .exe installer via electron-builder
 ```
-
-**Requirements:** Node.js >= 18.x, npm >= 9.x, Python >= 3.9 (for xlsx generation)
-**VS Code extensions:** ESLint, Prettier, Tailwind CSS IntelliSense, TypeScript
 
 ---
 
 ## Functional Scope — Modules
 
-### TAB 1: Report Generator + Test Checklist
+### Category A — Release Management
 
-#### 1A. Metadata form (MetaForm)
+#### TAB 1: Report Generator (v0.1 – v0.3, DONE ✅)
 
-| Field | Type | Details |
-|---|---|---|
-| Deployment number | Input | Fixed prefix `R_01.00.` + field `XX` + fixed suffix `.00` |
-| Date from | DatePicker | Calendar popup attached to field |
-| Date to | DatePicker | Calendar popup attached to field |
-| Environment | Checkboxes | TEST and/or STAGE — displayed inline to the right of the label |
-| Tester | Dropdown + Input | Presets from config.json + ability to add new |
+**Metadata form (MetaForm):**
+- Deployment number: fixed prefix `R_01.00.` + input `XX` + fixed suffix `.00`
+- Date from / Date to: DatePicker (popup calendar adjacent to field)
+- Environment: TEST / STAGE checkboxes (both can be checked)
+- Tester: dropdown with presets from `config.json` + ability to add new
+- Vendor: text input — when filled, ticket cells in ChangesTable render as hyperlinks `${vendor}${ticket}`
 
-#### 1B. Scope input (ScopeInput)
-- Textarea for scope in Markdown format
-- **"Parse scope"** button
-- Table preview after parsing
-- Alert with list of unparsed lines (yellow)
+**Scope parser** (`scopeParser.ts`):
+- Input: Markdown (`* Component vX.Y.Z` → `   * TYPE - Description [PROJ-XXXX](url) Status`)
+- Component header detection: **lookahead** — a line is a component header iff the next non-empty line matches `CHANGE_START_RE` (`/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`). Version optional — headers without a version produce `version: ""`.
+- Tickets: markdown `[PROJ-XXXX](url)`, bracketed `[PROJ-XXXX]`, and bare `PROJ-XXXX` (in that priority order)
+- Statuses: `Done` | `In Review` | `Waiting for test` | `In Progress` | `Documentation`
+- Suffix `(z iteracji R_...)` and `(from iteration R_...)` → ignored
+- Version `v.2.6.1` → normalized to `v2.6.1`
+- No ticket → empty string (not an error)
 
-#### 1C. "Components and changes" table (ChangesTable)
-Columns: `No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Status`
-- Auto-populated from parser, inline editable
-- `MOD`/`FIX` type highlighted with colored badge
+**Table 1 — Components and Changes:**
+`No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Status`
 
-#### 1D. "Test cases" table (TestCasesTable)
-Columns: `No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Current result` | `Result`
-- No→Ticket: copied 1:1 from 1C
+All cells inline-editable. Ticket cell renders as `<a href>` link when vendor is set, plain editable input otherwise.
+
+**Table 2 — Test Cases:**
+`No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Current result` | `Result`
+- Columns `No`→`Ticket`: 1:1 with Table 1 (read-only mirror)
 - `Result`: always "POSITIVE", locked
-- `Current result`: TipTap rich text editor per row:
-  - Text
-  - Ctrl+V → inline screenshot from clipboard
-  - Drag & drop image
-  - "📎 Add image" button → file picker
+- `Current result`: TipTap editor — text + inline images (Ctrl+V from clipboard, drag&drop, file picker)
 
-#### 1E. PDF generation
-- **"Generate report PDF"** button → save dialog → toast + "Open file"
+> **Note:** Tab 1 does NOT include a test checklist. The checklist feature originally proposed for Tab 1 was removed on 2026-05-07 as it duplicated Tab 3 (Terminal Regression). Tab 3 is now the canonical place for checklist-style testing.
 
-#### 1F. Auto-save
-- Every 30s → `userData/drafts/current.json`
-- On startup: dialog "Draft detected. Load it?"
+**PDF output** (pdfmake):
+- Header: deployment number, period, tester, environment, generation date
+- Section 1: components table with status
+- Section 2: test cases table with images
+- Section 3: fixed summary and recommendation (editable in settings)
+- Footer: `QA Release HUB | Deployment R_xx | Page X/Y`
+
+**Auto-save:** every 30s → `userData/drafts/current.json`, load dialog on app start
 
 ---
 
-### TAB 2: Deployment Schedule
+#### TAB 2: Deployment Schedule (v0.8) — EPHEMERAL
 
-#### Purpose
-Convert a Teams schedule into a Loop-format checklist (Markdown checkboxes) ready to paste during the deployment call. Data is ephemeral — not saved.
+> Demoted from v0.4 — partially complete (parser + ScheduleBuilder structure done in v0.4.0 session A), remaining work (Loop output + clipboard + clear) deferred behind higher-priority modules.
 
-#### 2A. Input (ScheduleInput)
-- Textarea + **"Parse schedule"** button
-- Parser auto-detects Type A or Type B
+**Schedule parser** (`scheduleParser.ts`) — two formats:
 
-#### 2B. Editor (ScheduleBuilder)
+*Type A (Roman numerals):*
+```
+I. Component (X min)
+  0. Step
+  1. Step
+```
+Detection: first non-empty line matches `/^[IVX]+\./`
 
-**Developers:**
-- Type B: people extracted automatically by parser
-- Type A: no people — user adds manually with "+" button
-- Assign components to people (checkbox list)
-- Notes per component (pre-filled from parser or entered manually)
+*Type B (people as headers):*
+```
+Developer A
+1. Component (X min) - note
+```
+Detection: anything other than Type A
 
-**Testers:**
-- Dynamic addition: "+" button → name field
-- Any number (1–N)
-- Assign components to test
-
-#### 2C. Output (ScheduleOutput)
-
-Loop Markdown format:
+**Output (Loop Markdown)** — format for pasting into Microsoft Teams/Loop:
 ```
 **R_01.00.46.00 — schedule**
 
 **Developer A**
-1. Database update (5 min)
-   - [ ] DMT – START
-   - [ ] DMT – END
-   - [ ] TEST – START
-   - [ ] TEST – END
-
-**[Tester]**
-1. Component A
+1. Component (X min)
+   - [ ] DEV – START
+   - [ ] DEV – END
    - [ ] TEST – START
    - [ ] TEST – END
 ```
-
-- Developer per component: `DMT – START`, `DMT – END`
+- Developer per component: `DEV – START`, `DEV – END`
 - Tester per component: `TEST – START`, `TEST – END`
-- **"Copy to clipboard"** button + "Copied!" toast
-- **"Clear"** button → reset tab
+- Dynamically add testers (button "+")
+- "Copy to clipboard" button + toast
 
 ---
 
-### TAB 3: Terminal Regression (v0.5)
+### Category B — Terminal Testing
 
-#### Module purpose
-Interactive regression checklist for terminal applications during a test session. Replaces manual marking in Excel. At the end of the session generates an `.xlsx` file matching the format of existing checklists.
+#### TAB 3a: Android Terminal Regression (v0.5) — EPHEMERAL
 
-#### Test case data
-Test cases stored as JSON files in the repository (`src/renderer/data/`):
-- `regression-terminal-a.json` — test cases for Terminal A
-- `regression-terminal-b.json` — test cases for Terminal B
+**Data:** JSON in repository (`src/renderer/data/regression-terminal-android.json`).
 
-JSON format mirrors Excel structure (categories → subcategories → test cases). Updating TCs = editing JSON + commit. `[MOD/FIX]` sections are omitted from both files.
+**Session view:**
+- Input: app version
+- Toggle: STAGE / TEST
+- Accordion of categories → subcategories → test cases
+- Per TC: PASS ✓ / FAIL ✗ / SKIP ⊘ + Defect field (`PROJ-####`)
+- Notes from JSON as read-only tooltip
+- SKIP → row grayed out
+- Progress bar + filters (All / FAIL only / Not executed)
 
-**JSON structure:**
+**Excel output** (openpyxl via Python IPC):
+- Header: `[APPLICATION][TERMINAL][VERSION][ENVIRONMENT]`
+- Columns: `Test description` | `Result` (👍/👎/⮾) | `Defect` + hyperlink | `Notes`
+- SKIP rows: gray background
+- Categories/subcategories as section headers (bold, highlighted background)
+
+---
+
+#### TAB 3b: Embedded Terminal Regression (v0.6) — EPHEMERAL
+
+Identical structure to Tab 3a but with `regression-terminal-embedded.json` as the data source. Different TC set (embedded-specific scenarios).
+
+**Why split into 3a / 3b (ADR-014):** the Android and Embedded terminal test suites are functionally disjoint — different hardware, different OS, different feature coverage. Sharing a toggle inside one tab was confusing and made it impossible to view both progress states simultaneously.
+
+---
+
+#### TAB 4: Terminal Update Monitor (v0.7) — EPHEMERAL
+
+##### Goal
+Real-time view of update package processing status on terminals. The tester enters a terminal TID and sees whether a given app version has been downloaded — enabling the decision whether a given test case can already be verified.
+
+##### Endpoint
+`GET /api/v1/devices/{deviceId}/allupdates`
+
+Parameters: `deviceId` (path, required), `dateFrom`, `dateTo`, `limit` (def. 20), `offset` (def. 0), `sort` (def. `updatedatetime`)
+
+##### Architecture
+- API calls: **IPC → main process → Node.js fetch** (never directly from renderer — ADR-010)
+- Bearer token: **Zustand RAM only** — never on disk, never in `config.json` (ADR-009)
+- Base URL + login: stored in `config.json`
+- Password: **never** stored — required on every app start
+- Token storage delegated to `secureCredentialStore` (ADR-017)
+
+##### Response structure
 ```typescript
-interface RegressionTestCase {
-  id: string;              // unique, e.g. "TERMINAL-A-PAYMENTS-001"
-  description: string;     // test case content
-  notes?: string;          // how-to hint (tooltip)
-  category: string;        // e.g. "PAYMENTS"
-  subcategory: string;     // e.g. "CHIP"
+type UpdateStatus =
+  | 'added'       // queued — nothing yet
+  | 'generating'  // package being generated
+  | 'ready'       // package ready on server
+  | 'downloading' // terminal downloading
+  | 'downloaded'; // terminal downloaded — ready to test ✓
+
+interface UpdateStatusEntry {
+  status: UpdateStatus;
+  date: string; // ISO datetime
 }
 
-interface RegressionData {
-  terminal: 'TERMINAL-A' | 'TERMINAL-B';
-  categories: {
-    name: string;
-    subcategories: {
-      name: string;
-      tests: RegressionTestCase[];
-    }[];
-  }[];
+interface UpdateFile {
+  fileId: number;
+  fileParameterName: string;
+  version: string;
+  nativeVersion: string;
+  addDateTime: string;
+  modDateTime: string;
+  size: number;
+  status: { status: string; date: string };
+  description?: string;
+}
+
+interface DeviceUpdate {
+  updateId: number;
+  addDateTime: string;
+  priority: string;
+  status: UpdateStatusEntry[]; // sorted descending — status[0] = current (ADR-011)
+  updateType: string[];
+  files: UpdateFile[];
+}
+
+interface DeviceUpdatesResponse {
+  updates: DeviceUpdate[];
+  offset: number;
+  limit: number;
+  total: number;
 }
 ```
 
-#### 3A. Session form
-| Field | Type | Details |
+##### Status colors in UI
+| Status | Tailwind | Meaning |
 |---|---|---|
-| Terminal | Toggle | TERMINAL-A / TERMINAL-B |
-| App version | Input | e.g. `3.21.0` |
-| Environment | Toggle | STAGE / TEST |
+| `downloaded` | `bg-green-100 text-green-800` | ✅ Ready to test |
+| `downloading` | `bg-blue-100 text-blue-800` | ⏳ Download in progress |
+| `ready` | `bg-yellow-100 text-yellow-800` | 🕐 Waiting for terminal |
+| `generating` | `bg-orange-100 text-orange-800` | ⚙️ Generating |
+| `added` | `bg-gray-100 text-gray-600` | 📋 Queued |
 
-#### 3B. Checklist view
-- Categories as collapsible/expandable sections (accordion)
-- Subcategories as headers inside sections
-- Per test case:
-  - Test description
-  - Buttons: `✓ PASS` | `✗ FAIL` | `⊘ SKIP`
-  - `Defect` field: entering `PROJ-####` → saves as text + generates hyperlink in Excel
-  - Notes: tooltip/expandable hint (read-only)
-- SKIP rows → grayed out
-- Progress bar: `X / Y completed | A ✓ | B ✗ | C ⊘`
-- View filter: `All` / `FAIL only` / `Not executed`
+##### Extracting app version from file
+App version = `nativeVersion` from the file where `fileParameterName.startsWith('BSC.')`.
+Explicit logic in a helper, no magic string.
 
-#### 3C. Excel report generation
-- **"Generate Excel report"** button
-- `.xlsx` file:
-  - Header: `[APP][TERMINAL][VERSION][ENVIRONMENT]`
-  - Columns: `Test description` | `Result` | `Defect` | `Notes`
-  - Result: 👍 (PASS) / 👎 (FAIL) / ⮾ (SKIP)
-  - Defect: `PROJ-####` text + hyperlink to ticket
-  - SKIP rows: gray background
-  - Categories and subcategories as section headers (bold, highlighted background)
-- **"Reset session"** button → clear all statuses
-
-#### Persistence
-Ephemeral — session state in Zustand store only. When closing tab with unfinished session: confirmation dialog.
+##### Tab 4 components
+- `MonitorAuth` — login, token state indicator (collapsible panel)
+- `MonitorQuery` — TID form + filters + auto-refresh toggle
+- `MonitorSummary` — bar: TID, total, timestamp, per-status counters
+- `MonitorTable` — table with status badges + accordion (timeline + files)
+- `MonitorHistory` — last 10 session queries, click = repopulate form
 
 ---
 
-### TAB 4: AIO TC-GEN (v0.8+)
-Generating test cases from change descriptions (fix/mod) using LLM API (Claude / OpenAI). Details to be defined in a separate session.
+### Category C — TC Generator
+
+#### TAB 6: AIO TC-GEN (v0.4) — LLM-BASED TEST CASE GENERATOR
+
+> **Promoted to v0.4** as the project's CV-killer feature. The flagship demonstration of AI-augmented QA capabilities.
+
+##### Goal
+Accept fix/mod descriptions (typically pasted from Jira tickets, release notes, or developer write-ups) and generate structured test cases using an LLM. Output suitable for direct use in Tab 3 regression or Tab 1 test cases.
+
+##### Architecture
+- LLM call: **IPC → main process → Node.js fetch → Anthropic/OpenAI API**
+- API key: stored encrypted in `config.json` OR prompted on first use (decision deferred to v0.4 implementation session — ADR placeholder)
+- Streaming response: streamed token-by-token back to renderer via IPC events for live preview
+- Provider abstraction: pluggable provider interface (`ClaudeProvider`, `OpenAIProvider`) — single store, single UI
+
+##### Inputs
+- Fix/mod description (textarea)
+- Optional context: component name, version, environment, prior similar TCs
+- Mode toggle: "single TC" / "TC suite" / "regression checklist items"
+
+##### Outputs
+- Structured TC list with: title, preconditions, steps, expected result, priority
+- Editable inline before export
+- Export targets: Markdown, Tab 1 (TestCasesTable), Tab 3 JSON snippet
+
+##### Open architectural questions (to resolve before v0.4 implementation)
+- Which LLM provider as default? Claude (Anthropic) given alignment with project
+- Where to store API key? Encrypted in `config.json` vs. RAM-only vs. OS keychain
+- Prompt template versioning?
+- Cost guardrails (max tokens per call, monthly budget alarm)?
 
 ---
 
-### TAB 5: Terminal Update Monitor (v0.6)
+### Category D — Diagnostic Tools
 
-#### Module purpose
-Real-time view of update package processing statuses on terminals, without opening the management system web panel. The tester provides a terminal ID (TID) and immediately sees whether a given application version has already been downloaded and processed — which allows deciding whether a given test case can already be verified.
+#### TAB 7: System Log Parser (v0.9) — LOCAL
 
-#### Connection architecture
-API calls made via **Electron IPC → main process → Node.js fetch**. Bearer token stored exclusively in RAM (Zustand store), never written to disk. Base URL and login saved in `config.json`, password never.
+Parses log files generated by terminals. Filter, search, interpret diagnostic data. Supports troubleshooting and test analysis. Pure local — no API, no auth. Implementation details TBD.
 
-Endpoint: `GET /api/v1/devices/{deviceId}/allupdates`
+#### TAB 8: Parameter Parser (v0.9) — LOCAL
 
-Query parameters:
-| Parameter | Type | Description |
-|---|---|---|
-| `deviceId` | integer (path) | Terminal ID — required |
-| `dateFrom` | datetime (query) | Filter from date — optional |
-| `dateTo` | datetime (query) | Filter to date — optional |
-| `limit` | integer (query) | Max results, default 20 |
-| `offset` | integer (query) | Pagination, default 0 |
-| `sort` | string (query) | Default `updatedatetime` |
+Parses and interprets terminal configuration parameters (text format). Reads and validates parameter values. Supports diagnostics and tests. Pure local — no API, no auth. Implementation details TBD.
 
-#### Update status pipeline
-Each package passes through the following statuses (`status[]` array in response, sorted descending — `status[0]` = current):
+#### TAB 9: QRCode Generator (v0.10) — API-BACKED ⚠️
 
-| Status | Color | Tailwind class | Meaning for tester |
-|---|---|---|---|
-| `added` | ⚪ gray | `bg-gray-100 text-gray-600` | Dispatch requested — nothing yet |
-| `generating` | 🟠 orange | `bg-orange-100 text-orange-800` | Package being generated on server |
-| `ready` | 🟡 yellow | `bg-yellow-100 text-yellow-800` | Package ready — waiting for terminal to download |
-| `downloading` | 🔵 blue | `bg-blue-100 text-blue-800` | Terminal is downloading |
-| `downloaded` | 🟢 green | `bg-green-100 text-green-800` | Terminal downloaded — **ready to test** |
+> **Pre-implementation warning:** logic to be ported from existing standalone app (reverse engineering session required before coding).
 
-#### 5A. Connection configuration (MonitorAuth)
-- Collapsible config panel (remembers expanded state)
-- Input: API Base URL (saved in `config.json`)
-- Input: Login (saved in `config.json`)
-- Input: Password (in memory only, never to disk)
-- **"Log in"** button → POST to auth endpoint → Bearer token in Zustand
-- Status indicator: `● Connected` (green) / `● No token` (gray) / `● Error` (red)
+Generates QR codes used in system processes (registration / visit initiation). API-backed — calls an external service that produces QR payloads. Generic credential handling via `secureCredentialStore`.
 
-#### 5B. Query form (MonitorQuery)
-| Field | Type | Default | Notes |
-|---|---|---|---|
-| Device ID (TID) | Input number | — | required |
-| Date from | DateTimePicker | — | optional |
-| Date to | DateTimePicker | — | optional |
-| Limit | Input number | `20` | |
-| Offset | Input number | `0` | |
-| Sort | Input text | `updatedatetime` | |
+#### TAB 10: SQL Query (v0.12) — API-BACKED
 
-- **"Fetch statuses"** button
-- **"Auto-refresh"** toggle with interval selector: `10s / 30s / 60s`
-- When auto-refresh active: countdown to next refresh
-
-#### 5C. Summary bar (MonitorSummary)
-Displayed above table after each fetch:
-```
-Terminal: 12345  |  Results: 10 / 10  |  Last fetch: 10:24:51
-Current statuses:  ● downloaded: 2   ● ready: 6   ● generating: 1   ● added: 1
-```
-
-#### 5D. Updates table (MonitorTable)
-One row = one update package:
-
-| Column | JSON source | Notes |
-|---|---|---|
-| Update ID | `updateId` | |
-| Added | `addDateTime` | formatted date/time |
-| Current status | `status[0].status` | colored badge |
-| Since | `status[0].date` | time of last status change |
-| Package type | `updateType[]` | tags: `app` / `config` / `report` |
-| App version | `files[].nativeVersion` where `fileParameterName` starts with `BSC.` | e.g. `3.21.0` |
-| Files | `files[].fileParameterName` | list of file names in package |
-
-**Row expansion** (click → accordion):
-- Full status timeline with dates (all steps from `status[]`)
-- File list with: `fileParameterName`, `nativeVersion`, size (KB/MB), file status
-
-- **"Copy as JSON"** button — copies raw response to clipboard
-
-#### 5E. Session query history (MonitorHistory)
-- Ephemeral — Zustand only, no disk save
-- Last 10 queries: `TID | timestamp | result count`
-- Click on history row → re-populate form (TID + parameters)
+Executes queries against MSSQL backend databases. Supports diagnostics, verification, test data lookup. Connection string + credentials managed via `secureCredentialStore`. Read-only safety guardrail by default — write queries require explicit confirmation. Implementation details TBD.
 
 ---
 
-### TAB 6: Virtual Terminal (v0.9+)
-Details to be defined in a separate session.
+### Category E — Backend Integrations
+
+#### TAB 11: Card Management (v0.13) — API-BACKED ⚠️
+
+> **Pre-implementation warning:** logic to be ported from existing standalone app (reverse engineering session required before coding).
+
+Generic skeleton for managing card-related data through pluggable backend (REST API, database, or both). Initial scope: viewing card event history and status changes for diagnostics. Future scope: card configuration operations. Credentials via `secureCredentialStore`.
+
+#### TAB 12: Partner Management (v0.14) — API-BACKED ⚠️
+
+> **Pre-implementation warning:** logic to be ported from existing standalone app (reverse engineering session required before coding).
+
+Generic skeleton for managing partner data (card metadata, object configuration, partner-level settings). Pluggable backend. Used in administrative and operational flows. Credentials via `secureCredentialStore`.
 
 ---
 
-### TAB 7: Limit Checker (v1.0+)
-Details to be defined in a separate session.
+### System Area (gear icon in TitleBar)
 
----
+Replaces the former "Tab 5: Settings" — settings are not a daily workflow tab (ADR-016). Behind the gear menu in TitleBar:
 
-### TAB 8: Card Reader (v1.1+)
-Details to be defined in a separate session.
-
----
-
-### TAB 9: Mobile App (v1.2+)
-Details to be defined in a separate session.
+- **Presets:** tester names, default save path, vendor URL prefix, summary text
+- **History:** generated PDF report metadata (`userData/history/index.json`)
+- **App config:** theme (future), language (future), LLM provider + API key (Tab 6), saved terminal monitor connections, saved SQL connections
+- **About:** version, links
 
 ---
 
@@ -600,112 +551,45 @@ Details to be defined in a separate session.
 ```
 
 **Rules:**
-1. A line is a component header if the **next non-empty line** starts with `MOD` or `FIX` (matches `/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`).
-   - Version is optional: if the line contains `vX.Y.Z` (regex `/^\*?\s*(.+?) (v\.?[\d.]+)/`), it is extracted; otherwise `version = ""`.
-   - Normalization: `v.2.6.1` → `v2.6.1`
-   - Suffix `(from iteration R_...)` or `(z iteracji R_...)` → ignored
-2. `   * TYPE - ...` → change
-   - Type: `MOD` or `FIX`
-   - Ticket forms (tried in order):
-     1. Markdown: `[PROJ-XXXX](url)` → `PROJ-XXXX`
-     2. Bracketed: `[PROJ-XXXX]` → `PROJ-XXXX`
-     3. Bare: `PROJ-XXXX` (any `[A-Z]+-\d+` token) → `PROJ-XXXX`
-   - No ticket → `""`
-   - Status (last token): `Done` | `In Review` | `In Progress` | `Waiting for test` | `Documentation` | `""`
-   - Lines that are neither component headers nor MOD/FIX → silently skipped
-   - MOD/FIX line with no component context → `unparsedLines[]`
+1. Component headers detected by **lookahead** — a line is a header iff the next non-empty line matches `/^\s*(?:\*\s*)?(MOD|FIX)\s*-/`
+2. Version optional — normalized `v.X.Y.Z` → `vX.Y.Z`
+3. Tickets — priority order: markdown link → bracketed → bare uppercase prefix
+4. Statuses: `Done` | `In Review` | `Waiting for test` | `In Progress` | `Documentation`
+5. Iteration suffixes (`z iteracji ...`, `from iteration ...`) → ignored
+6. Non-MOD/FIX lines → silently skipped
+7. Orphan MOD/FIX (no component context above) → `unparsedLines[]` (warning surfaced in UI)
 
-**Output type:**
-```typescript
-interface ParsedChange {
-  nr: number;
-  component: string;
-  version: string;
-  type: 'MOD' | 'FIX';
-  changeDescription: string;
-  ticket: string;
-  status: 'Done' | 'In Review' | 'In Progress' | 'Waiting for test' | 'Documentation' | '';
-}
-```
+### Parser 2: Deployment schedule (scheduleParser)
 
----
-
-### Parser 2: Schedule (scheduleParser)
-
-**Type A — detailed (Roman numeral numbering):**
-```
-I. Component (X min)
-  0. Step
-  1. Step
-II. Component (X min)
-```
-- No people → user assigns in ScheduleBuilder
-
-**Type B — simplified (people as headers):**
-```
-Developer A
-1. Component (X min) - note
-2. Component (X min)
-```
-- People extracted automatically
-
-**Detection:** First non-empty line matches `/^[IVX]+\./` → Type A, otherwise → Type B
-
-**Output types:**
-```typescript
-interface ScheduleComponent {
-  name: string;
-  durationMin: number;
-  notes: string;
-  steps?: string[];       // Type A
-  developer?: string;     // Type B
-}
-
-interface SchedulePerson {
-  name: string;
-  role: 'developer' | 'tester';
-  components: ScheduleComponent[];
-}
-
-interface ParsedSchedule {
-  type: 'A' | 'B';
-  people: SchedulePerson[];
-  components: ScheduleComponent[];
-}
-```
+Already documented above under Tab 2. Auto-detection rule from ADR-006.
 
 ---
 
 ## PDF Report Structure
 
-### Header
+### Header (page 1)
 ```
-QA RELEASE HUB
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DEPLOYMENT TEST REPORT
-
-Deployment number:  R_01.00.46.00
-Test period:        2026-05-01 — 2026-05-04
-Tester:             Tester A
-Environment:        TEST ✓   STAGE ✓
-Generated:          2026-05-04
+DEPLOYMENT REPORT
+R_01.00.46.00
+Period: 2026-05-04 — 2026-05-06
+Tester: Tester A
+Environment: TEST, STAGE
+Generated: 2026-05-06 14:32
 ```
 
-### Section 1: Components and changes
-`No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Status`
+### Section 1 — Components and Changes
+Table mirroring ChangesTable.
 
-### Section 2: Test cases
-`No` | `Component` | `Version` | `Type` | `Change description` | `Ticket` | `Current result` | `Result`
+### Section 2 — Test Cases
+Table mirroring TestCasesTable with rich-text current results (TipTap → pdfmake conversion via `tiptapToText`).
 
-"Current result" column: text + inline images (base64).
-"Result" column: always "POSITIVE".
-
-### Section 3: Summary and recommendations
+### Section 3 — Summary
 ```
 Summary:        All tests completed with positive results.
-                No critical errors detected.
+                No critical issues detected.
 Recommendation: Deployment to production environment can be recommended.
 ```
+Both texts editable in settings (gear menu).
 
 ### Footer (every page)
 ```
@@ -716,370 +600,147 @@ QA Release HUB  |  Deployment R_01.00.46.00  |  Page X / Y
 
 ## Data Persistence
 
-### `userData/config.json`
-```json
-{
-  "testers": ["Tester A", "Tester B"],
-  "defaultSavePath": "C:/Users/user/Documents/Reports",
-  "summary": {
-    "text": "All tests completed with positive results. No critical errors detected.",
-    "recommendation": "Deployment to production environment can be recommended."
-  },
-  "terminalMonitor": {
-    "baseUrl": "https://api.example.com",
-    "login": "qa-user"
-  }
-}
+```
+userData/
+├── config.json
+│   - testers[]
+│   - defaultSavePath
+│   - vendorUrlPrefix
+│   - summary { podsumowanie, rekomendacja }
+│   - terminalMonitor { baseUrl, login }
+│   - llm { provider, apiKey_encrypted? }   # Tab 6 — design pending
+│   - sqlConnections[]                       # Tab 10
+│   - integrations { card: {...}, partner: {...} }  # Tabs 11–12
+│   ⚠️ Passwords / Bearer tokens NEVER stored here
+├── drafts/
+│   └── current.json     # Tab 1 auto-save every 30s
+└── history/
+    └── index.json       # generated PDF report metadata
 ```
 
-> ⚠️ The terminal API password is **never** saved in `config.json` or any file. Stored exclusively in RAM (Zustand) for the duration of the session.
-
-### `userData/drafts/current.json`
-Full report form state — serialized every 30s. TipTap images serialized as base64.
-
-### `userData/history/index.json`
-```json
-[
-  {
-    "id": "2026-05-04-R_01.00.46.00",
-    "deploymentNumber": "R_01.00.46.00",
-    "generatedAt": "2026-05-04T14:32:00",
-    "tester": "Tester A",
-    "path": "C:/Users/.../R_01.00.46.00_report.pdf"
-  }
-]
-```
-
-### Tab 2, Tab 3, Tab 5 — persistence
-- **Tab 2** (Schedule): Ephemeral. Zustand only, no disk save.
-- **Tab 3** (Regression): Ephemeral. Zustand only, confirmation dialog when leaving unfinished session.
-- **Tab 5** (Monitor): Ephemeral. Token and results in Zustand only. Base URL + login saved in `config.json`, password never.
+**Per-tab persistence rules:**
+- **Tab 1:** persisted (drafts + final history)
+- **Tab 2:** ephemeral — Zustand only
+- **Tab 3a / 3b:** ephemeral — Zustand only, confirmation dialog on leave with unfinished session
+- **Tab 4:** ephemeral — Bearer token RAM only, results not persisted, history of 10 last queries in-session only
+- **Tab 6:** generated TCs ephemeral until explicitly saved/exported; API key handling per design decision (TBD)
+- **Tab 7 / 8:** ephemeral
+- **Tab 9 / 10 / 11 / 12:** ephemeral session state; connection profiles (URLs, logins) in `config.json`, credentials always RAM via `secureCredentialStore`
 
 ---
 
 ## Error Handling Strategy
 
-### IPC result type — always used, no exceptions
-
-Every IPC handler returns this shape. Never throw raw errors across the IPC boundary.
+All IPC handlers return `IpcResult<T>` (ADR-013) — never throw raw errors across the IPC boundary.
 
 ```typescript
 type IpcResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string; code: IpcErrorCode }
+  | { ok: true; data: T }
+  | { ok: false; errorCode: IpcErrorCode; errorMessage: string };
 
 type IpcErrorCode =
   | 'AUTH_EXPIRED'
-  | 'AUTH_FAILED'
+  | 'AUTH_INVALID_CREDENTIALS'
   | 'NETWORK_ERROR'
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
-  | 'UNKNOWN'
+  | 'FILE_WRITE_ERROR'
+  | 'LLM_ERROR'
+  | 'SQL_ERROR'
+  | 'UNKNOWN';
 ```
-
-### Zustand stores
-
-Every store that performs async operations includes:
-```typescript
-isLoading: boolean
-error: string | null
-```
-Reset `error` to `null` on new request. Set on failure.
-
-### React error boundaries
-
-Each tab is wrapped in an `<ErrorBoundary>` component. One tab crashing does not affect others.
-
-### UI error presentation
-
-| Error type | UI treatment |
-|-----------|-------------|
-| Non-blocking (copy failed, refresh failed) | Toast notification, auto-dismiss |
-| Blocking (auth failed, data load failed) | Inline error with retry button |
-| Auth expired (401) | "Session expired" banner + "Log in again" button |
-| Not found (404) | Inline message in the affected section |
-| Network timeout | Inline message with retry + connection hint |
-
-### Terminal monitor specific error codes
-
-- `401` → `AUTH_EXPIRED` → show login prompt, do not retry automatically
-- `404` → `NOT_FOUND` → show "Terminal ID not found"
-- timeout → `NETWORK_ERROR` → show "Connection failed — check Base URL"
-- Token value must **never** appear in error messages, console logs, or any file
 
 ---
 
 ## Testing Strategy
 
-### Scope — what we unit test
-
-| Module | Test file | Coverage required |
-|--------|-----------|------------------|
-| `scopeParser.ts` | `scopeParser.test.ts` | markdown ticket, bracketed ticket, bare ticket, no ticket, version normalization (`v.X.Y` → `vX.Y`), English + Polish ignored suffix, all type values (MOD/FIX), all 5 status values, skip non-change lines, orphan MOD/FIX → unparsedLines, component header without version (lookahead detection) |
-| `scheduleParser.ts` | `scheduleParser.test.ts` | Type A detection, Type B detection, Roman numeral parsing, person extraction from Type B, duration parsing, notes extraction |
-| `pdfGenerator` helpers | `pdfGenerator.test.ts` | date range formatting, deployment number formatting |
-| Terminal monitor helpers | `terminalMonitor.helpers.test.ts` | BSC.* version extraction logic, `status[0]` current status rule, file size formatting (bytes → KB/MB) |
-
-### What we do NOT unit test
-
-- React components — no renderer test setup in this project
-- IPC handlers — require Electron runtime, tested manually against acceptance criteria
-- PDF output — tested manually
-- Excel output — tested manually
-- Zustand stores — integration-level concerns, not unit-tested
-
-### Test format — table-driven for all parsers
-
-```typescript
-describe('scopeParser', () => {
-  const cases = [
-    {
-      desc: 'extracts PROJ ticket from markdown link',
-      input: '   * MOD - Fix cache [PROJ-1234](https://example.com) Done',
-      expected: { type: 'MOD', ticket: 'PROJ-1234', status: 'Done' }
-    },
-    {
-      desc: 'extracts PROJ ticket from plain brackets',
-      input: '   * FIX - Something [PROJ-5678]',
-      expected: { type: 'FIX', ticket: 'PROJ-5678', status: '' }
-    },
-    {
-      desc: 'handles missing ticket gracefully',
-      input: '   * MOD - Something without ticket Done',
-      expected: { ticket: '', status: 'Done' }
-    },
-    {
-      desc: 'normalizes version v.X.Y to vX.Y',
-      input: '* ComponentA v.2.6.1',
-      expected: { version: 'v2.6.1' }
-    },
-  ]
-
-  test.each(cases)('$desc', ({ input, expected }) => {
-    expect(parseScope(input)).toMatchObject(expected)
-  })
-})
-```
-
-### Pure function rule
-
-Parsers and helpers must be pure functions (no IPC, no side effects). If a helper needs IPC to work, extract its logic into a pure function and test that. Never mock `ipcRenderer` in unit tests.
+- Unit tests (Vitest) for every parser, generator, and pure helper
+- Snapshot tests for PDF document definitions (pdfmake docDef)
+- Integration tests for IPC handlers (mock fetch, mock fs)
+- Manual E2E flows documented in `CLAUDE.md` session log
 
 ---
 
 ## IPC Channels Contract
 
-Central registry. Add new channels here when creating new handlers.
+| Channel | Direction | Payload | Returns |
+|---|---|---|---|
+| `store:get` | renderer → main | `{ key }` | `IpcResult<T>` |
+| `store:set` | renderer → main | `{ key, value }` | `IpcResult<void>` |
+| `pdf:generate` | renderer → main | `{ docDef, defaultName }` | `IpcResult<{ savedPath }>` |
+| `terminal:login` | renderer → main | `{ baseUrl, login, password }` | `IpcResult<{ token }>` (token stays in main? — design ref ADR-009) |
+| `terminal:fetchUpdates` | renderer → main | `{ deviceId, filters }` | `IpcResult<DeviceUpdatesResponse>` |
+| `llm:generate` | renderer → main | `{ provider, prompt, options }` | `IpcResult<{ stream }>` (streaming events follow) |
+| `sql:query` | renderer → main | `{ connectionId, query }` | `IpcResult<{ rows, columns }>` |
+| `backend:call` | renderer → main | `{ integrationId, method, path, body }` | `IpcResult<unknown>` |
 
-| Channel | Payload type | Response type | Handler file |
-|---------|-------------|---------------|--------------|
-| `pdf:generate-report` | `{pdfBase64: string; defaultFilename: string}` | `IpcResult<{path: string\|null}>` | `pdf.handler.ts` |
-| `pdf:generate-checklist` | `ChecklistData` | `IpcResult<{path: string}>` | `pdf.handler.ts` |
-| `store:get` | `{key: string}` | `IpcResult<unknown>` | `store.handler.ts` |
-| `store:set` | `{key: string; data: unknown}` | `IpcResult<void>` | `store.handler.ts` |
-| `monitor:login` | `{baseUrl: string; login: string; password: string}` | `IpcResult<{token: string}>` | `terminalMonitor.handler.ts` |
-| `monitor:fetch-updates` | `MonitorQueryParams` | `IpcResult<DeviceUpdatesResponse>` | `terminalMonitor.handler.ts` |
-| `excel:generate-regression` | `RegressionExportData` | `IpcResult<{path: string}>` | `excel.handler.ts` |
-
-**Channel naming convention:** `domain:action` — lowercase, colon separator, no spaces.
+Renderer pattern: `window.electronAPI.<domain>.<method>()` only — no raw `ipcRenderer.invoke` from components.
 
 ---
 
 ## TODO / Roadmap
 
-### v0.1.0 — Foundation & Layout ✅
-- [x] Setup: electron-vite + React + TypeScript + Tailwind + Zustand
-- [x] Folder structure matching documentation
-- [x] GitHub repo: main + dev, .gitignore, README.md
-- [x] CI: .github/workflows/ci.yml (lint + type-check)
-- [x] Custom TitleBar
-- [x] Sidebar navigation: 9 tabs (Tab 2, 3, 4, 5 as placeholders; Tabs 6–9 added later as placeholders)
-- [x] UI components: Button, Input, Checkbox, Textarea
-- [x] MetaForm — all fields
-- [x] DatePicker — calendar popup
+| Version | Scope | Category | Status |
+|---|---|---|---|
+| v0.1.0 | Foundation, layout, TabBar, MetaForm, DatePicker, UI components | A | **DONE ✅** |
+| v0.2.0 | scopeParser + tests, ScopeInput, ChangesTable, TestCasesTable | A | **DONE ✅** |
+| v0.3.0 | TipTap rich text, PDF report pipeline, auto-save | A | **DONE ✅** |
+| v0.3.1 | Vendor field required, PDF Section 2 plain-text fix | A | **DONE ✅** |
+| v0.4.0 | **Tab 6 — AIO TC-GEN (LLM-based)** ⭐ CV killer | C | TODO |
+| v0.5.0 | Tab 3a — Android Terminal Regression | B | TODO |
+| v0.6.0 | Tab 3b — Embedded Terminal Regression | B | TODO |
+| v0.7.0 | Tab 4 — Terminal Update Monitor | B | TODO |
+| v0.8.0 | Tab 2 — Deployment Schedule (finish Loop output + clipboard) | A | PARTIAL (parser + builder done in v0.4 session A) |
+| v0.9.0 | Diagnostic Pack: Tab 7 (Log Parser) + Tab 8 (Parameter Parser) | D | TODO |
+| v0.10.0 | Tab 9 — QRCode Generator ⚠️ reverse-eng. brief required | D | TODO |
+| v0.11.0 | Settings / Presets / History polish (gear menu) | sys | TODO |
+| v0.12.0 | Tab 10 — SQL Query | D | TODO |
+| v0.13.0 | Tab 11 — Card Management ⚠️ reverse-eng. brief required | E | TODO |
+| v0.14.0 | Tab 12 — Partner Management ⚠️ reverse-eng. brief required | E | TODO |
+| v1.0.0 | Hardening, packaging, .exe installer, full E2E pass | — | TODO |
 
-### v0.2.0 — Parser + Tables ✅
-- [x] MetaForm layout fix: TEST/STAGE checkboxes inline right of "Environment" label
-- [x] scopeParser.ts + Vitest tests
-- [x] ScopeInput: textarea + Parse + error alert
-- [x] ChangesTable: auto from parser, inline editable
-- [x] TestCasesTable: columns No→Ticket, Result=POSITIVE
+### Pre-implementation warnings ⚠️
 
-### v0.3.0 — Rich Text + PDF
-- [x] TipTap in "Current result"
-- [x] Ctrl+V inline screenshot
-- [x] Image drag & drop
-- [x] "Add image" file picker
-- [x] pdfGenerator: main report
-- [x] Save dialog + toast
-- [x] Auto-save + load dialog on startup
+The following modules require a dedicated reverse-engineering / planning session **before** coding starts. Existing standalone-app logic must be reviewed first:
 
-### v0.4.0 — Schedule (Tab 2)
-- [x] scheduleParser: Type A + Type B + tests
-- [x] ScheduleInput: textarea + Parse
-- [x] ScheduleBuilder: developers + component assignment
-- [x] ScheduleBuilder: dynamic testers ("+" button)
-- [x] ScheduleBuilder: notes per component
-- [ ] ScheduleOutput: Loop Markdown format
-- [ ] "Copy to clipboard" + toast
-- [ ] "Clear" → reset Tab 2
+- **Tab 9 — QRCode Generator** (v0.10)
+- **Tab 11 — Card Management** (v0.13)
+- **Tab 12 — Partner Management** (v0.14)
 
-### v0.5.0 — Terminal Regression (Tab 3)
-- [ ] JSON structure for Terminal A and Terminal B
-- [ ] regression-terminal-a.json — all TCs without MOD/FIX sections
-- [ ] regression-terminal-b.json — all TCs without MOD/FIX sections
-- [ ] RegressionSetup: terminal toggle, version, environment
-- [ ] RegressionChecklist: category/subcategory accordion
-- [ ] PASS/FAIL/SKIP buttons per test case
-- [ ] Defect field: PROJ-#### input per test case
-- [ ] Tooltip/expandable notes (read-only)
-- [ ] SKIP rows: grayed out
-- [ ] Progress bar + PASS/FAIL/SKIP counters
-- [ ] Filter: All / FAIL only / Not executed
-- [ ] .xlsx generation (openpyxl via IPC)
-- [ ] Excel: header, categories, columns, emoji, hyperlinks, gray SKIP background
-- [ ] Confirmation dialog when leaving unfinished session
-- [ ] Reset session button
+For each, the briefing session must produce:
+1. List of files / code to port
+2. API contract (request, response, auth flow)
+3. Credential storage decision (almost certainly `secureCredentialStore`)
+4. Dependencies that need adding
+5. Risk register (breaking changes, missing parts, overkill check)
 
-### v0.6.0 — Terminal Update Monitor (Tab 5)
-- [ ] terminalMonitor.types.ts — types from API response
-- [ ] terminalMonitor.handler.ts — IPC: login (Bearer token) + fetch /allupdates
-- [ ] terminalMonitorStore.ts — token (RAM), results, history, auto-refresh state
-- [ ] MonitorAuth: login form, token status indicator
-- [ ] Save Base URL + login to config.json (no password)
-- [ ] MonitorQuery: TID form + date filters + limit/offset/sort
-- [ ] MonitorSummary: summary bar with status counters
-- [ ] MonitorTable: update table with colored status badges
-- [ ] MonitorTable: expandable accordion per row (timeline + files)
-- [ ] MonitorTable: extract app version from BSC.* file
-- [ ] Auto-refresh: toggle + 10s/30s/60s interval + countdown
-- [ ] MonitorHistory: last 10 session queries
-- [ ] "Copy as JSON" — raw response to clipboard
-- [ ] Error handling: expired token → message + "Log in again" button
-- [ ] Error handling: no connection, 404, 401, timeout
+---
 
-### v0.7.0 — Persistence + UX Polish
-- [ ] Tester presets: save/edit/delete
-- [ ] Report history
-- [ ] Settings: save path, summary text editing, monitor API config
-- [ ] Form validation before generation
+## Companion App: Terminal Hardware Toolkit
 
-### v0.8.0 — AIO TC-GEN (Tab 4)
-- [ ] Details to be defined
+**Separate application** — out of scope for QA Release HUB (ADR-015).
 
-### v0.9.0 — Virtual Terminal (Tab 6)
-- [ ] Details to be defined
+Same stack (Electron + React + TypeScript), separate repository. Houses:
 
-### v1.0.0 — Limit Checker (Tab 7)
-- [ ] Details to be defined
+- **Printer App** — printing process integration
+- **Cashier App** — cashier / sales process integration
+- **Terminal Flasher** — terminal service / configuration / installation operations
+- **Card Reader** — magnetic / chip card reader integration with binary data manipulation
 
-### v1.1.0 — Card Reader (Tab 8)
-- [ ] Details to be defined
+**Reason for separation:** these modules require native dependencies (USB, serial, vendor drivers) that would contaminate QA Release HUB's dependency tree. They also have a different cycle of use (ad-hoc, often hardware-specific failures) and a different audience. Keeping them separate also produces cleaner CV narrative: two focused apps rather than one kombajn.
 
-### v1.2.0 — Mobile App (Tab 9)
-- [ ] Details to be defined
-
-### Backlog
-- [ ] Dark/light mode toggle
-- [ ] PDF preview before saving
-- [ ] Checklist export to .txt / .md
+Cross-app coordination (if ever needed): local IPC bridge or deep links — not a shared process.
 
 ---
 
 ## Changelog
 
-### [feat] — 2026-05-11 (v0.4.0 sesja A — ScheduleInput + ScheduleBuilder)
-- `ScheduleInput.tsx`: textarea bound to store `rawInput`; "Parse schedule" button calls `parseSchedule` and writes result to store via `setParsed`; shows Type A/B, component count, and detected developer count after parse
-- `ScheduleBuilder.tsx`: `PersonCard` inline subcomponent with checkbox list of all parsed components and optional notes input (notes shown only for developers); Developers section — Type A: "+" button + remove; Type B: auto-populated from parser (no remove); Testers section — always "+" button + remove; all state in `scheduleStore.people` via `setPeople`; Enter key in name inputs confirms add
-- `App.tsx`: `ScheduleBuilder` imported and added to `SchedulePage`
+> See `CHANGELOG.md` for the full history. Headlines only here.
 
-### [chore] — 2026-05-11 (Tabs 6–9 placeholders)
-- `TabBar.tsx`: `TabId` extended to `1–9`; added `Monitor`, `ShieldCheck`, `CreditCard`, `Smartphone` icons from lucide-react; 4 new entries in `TABS` with badges v0.9–v1.2
-- `App.tsx`: 4 inline page functions (`VirtualTerminalPage`, `LimitCheckerPage`, `CardReaderPage`, `MobileAppPage`) following `AITCGenPage` pattern; registered in `TAB_PAGES`
-- `PROJECT.md`: architecture diagram, Functional Scope (TAB 6–9), Roadmap (v0.9.0–v1.2.0), and Acceptance Criteria updated with placeholder entries
-
-### [0.3.2] — 2026-05-10
-- `DraftRestoreDialog.tsx` (new): modal "Draft detected" shown on app startup when a previous session's draft contains meaningful data; Load/Discard actions; displays formatted save timestamp
-- `useDraft.ts`: added `peekDraft` (returns `savedAt` only when draft has rawScope or changes), `clearDraft` (writes null to disk); all functions wrapped in `useCallback` for stable references; autosave interval now runs from `App` (global, tab-independent)
-- `App.tsx`: `useDraft` moved to root `App` component; startup `useEffect` calls `peekDraft` once; `DraftRestoreDialog` rendered as top-level overlay
-- `reportTemplate.ts`: replaced `tiptapToText` with `tiptapToCell` — walks TipTap JSON and builds pdfmake content with text runs (bold/italic) and inline base64 images (width 120); Section 2 "Current result" column now renders rich content from editor
-
-### [0.3.1] — 2026-05-10
-- `reportTemplate.ts`: reverted `tiptapToContent` → `tiptapToText` — rich-text layout (bold/italic/images) caused pdfmake cell overflow; plain text extraction is stable fallback until images-in-PDF is tackled separately
-- `reportStore.ts`: added `vendorWarning: boolean` state + `setVendorWarning` action; `resetReport` clears it
-- `ScopeInput.tsx`: Parse scope blocked when Vendor field is empty — sets `vendorWarning` to show inline error
-- `MetaForm.tsx`: Vendor `Input` now shows inline error message when `vendorWarning` is true and vendor is empty
-- `Input.tsx`: new `required` prop — renders red asterisk next to label when set
-
-### [fix] — 2026-05-10 (pdfGenerator runtime)
-- `pdfGenerator.ts`: fixed "addVirtualFileSystem is not a function" — Vite/electron-vite wraps both `pdfmake/build/pdfmake` and `pdfmake/build/vfs_fonts` dynamic imports in `.default`; added intermediate `pdfMakeRaw`/`vfsFontsRaw` with `.default ?? raw` unwrap
-
-### [docs] — 2026-05-09
-- CLAUDE.md Definition of Done: added mandatory "Code review" step (security, quality, project conventions) before commit message
-
-### [fix] — 2026-05-09
-- `useDraft.ts`: useEffect missing `[]` fixed — interval was resetting on every render, autosave never fired; `saveDraft` now uses `useReportStore.getState()` instead of stale closure
-- Zustand selectors added to all 5 report components (`ChangesTable`, `ScopeInput`, `TestCasesTable`, `PdfPreview`, `MetaForm`) — each now re-renders only when its own slice of state changes
-- Session protocol updated: `Tested manually:` added as mandatory step in end-of-session checklist and Definition of Done
-
-### [feat] — 2026-05-10 (v0.3.0 — testResults wired into PDF)
-- `reportTemplate.ts`: added `tiptapToText` helper — walks TipTap JSON, joins all text nodes (no truncation); Section 2 "Current result" column now renders actual editor content instead of raw JSON
-- `PdfPreview.tsx`: `testResults` selector added; passed to `buildDocDefinition`
-- `TestCasesTable.tsx`: fixed `no-extra-semi` lint errors in `extractPreview`
-
-### [fix] — 2026-05-10
-- TestCasesTable: vendor selector + ticket hyperlink (identyczny jak ChangesTable)
-- ChangesTable: ticket fallback `<input>` → read-only `<span>`
-- ChangesTable: ticket hyperlink font size `text-sm` → `text-xs`
-
-### [feat] — 2026-05-10 (v0.3.0 — TipTap modal)
-- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image` v3.23.1 installed
-- `reportStore`: added `testResults: Record<number, string>` + `setTestResult`; `setChanges` resets `testResults`; `resetReport` clears `testResults`
-- `ResultEditorModal.tsx` (new): TipTap editor, Bold/Italic toolbar, Ctrl+V image paste, file picker, drag&drop; images as base64 data URIs; Escape/click-outside closes without saving
-- `TestCasesTable.tsx`: replaced local `useState` textarea with click-to-open preview cell + modal
-
-### [feat] — 2026-05-10
-- `ReportMeta` extended with `vendor: string`; `DEFAULT_META` updated
-- MetaForm: new Vendor input field, persisted to store
-- ChangesTable: ticket cell renders as hyperlink (`text-accent underline`) when both `vendor` and `ticket` are non-empty; falls back to plain editable input otherwise
-
-### [docs] — 2026-05-09
-- PROJECT.md audit: v0.1.0 roadmap items and Acceptance Criteria marked `[x]` / `✅` (were left unchecked since project start)
-- Changelog backfilled: scopeParser hardening and TabBar `__APP_VERSION__` fix entries added (both from 2026-05-08, previously omitted)
-- Memory: conscious update protocol established — section-by-section checklist on every "update logs"
-
-### [0.3.0] — 2026-05-09 (patch)
-- scopeParser: component headers now detected by lookahead (next non-empty line is MOD/FIX); version optional — lines without version produce `version: ""`
-- scopeParser tests: +2 cases for versionless header; 30 tests total
-
-### [0.3.0] — 2026-05-08
-- pdfmake v0.3.8 PDF generation pipeline: renderer builds doc + base64, main saves via dialog
-- reportTemplate.ts: full pdfmake doc — header, Section 1 (changes table), Section 2 (test cases), Section 3 (summary), page footer
-- pdfGenerator.ts: `createPdfBase64(docDef) → Promise<string>` wrapper
-- pdf.handler.ts: IPC handler with save dialog + fs.writeFile + IpcResult typed returns
-- PdfPreview.tsx: "Generate report PDF" button + inline success/error status
-- ReportData type added; electron.d.ts + preload updated for new signature
-- TitleBar + TabBar: version now derived from package.json via `__APP_VERSION__` Vite define (both components)
-- package.json bumped to 0.3.0
-- scopeParser hardening: ChangeStatus extended with `'In Progress'` and `'Documentation'`; bare ticket fallback added (`TICKET_BARE_RE = /\b([A-Z]+-\d+)\b/`); Polish suffix `(z iteracji R_...)` added to ignored patterns; non-MOD/FIX lines silently skipped; orphan MOD/FIX (no component context) → `unparsedLines[]`
-
-### [0.2.0] — 2026-05-07
-- MetaForm: TEST/STAGE checkboxes inline right of Environment label
-- ScopeInput: textarea + Parse button + unparsed-lines warning
-- ChangesTable: all columns inline editable, type shown as colored badge-select
-- TestCasesTable: read-only mirror of ChangesTable + Current result textarea + POSITIVE badge
-- reportStore: added `updateChange` action
-- Removed TestChecklist from Tab 1 (duplicated Tab 3 regression feature)
-- IPC channels standardized: `store:get` / `store:set`; renderer pattern: `window.electronAPI`
-
-### [0.1.0] — 2026-05-07
-- Project initialization
-- PROJECT.md — full documentation of architecture, parsers, roadmap
-- CLAUDE.md — session protocol and working memory created
-- Full v0.1.0 scaffold: Electron main, preload, React renderer, all layout components, UI primitives, MetaForm, Zustand stores, parsers, CI
-- Added Tab 5: Terminal Update Monitor (ADR-009, ADR-010, ADR-011)
-- ADR-012: Slate Pro dark layout selected as UI design
-- ADR-013: Error handling strategy formalized (IpcResult type, error codes)
+- **v0.3.1** (2026-05-10) — Vendor required guard, PDF Section 2 plain-text revert
+- **v0.3.0** (2026-05-08) — TipTap + PDF generation pipeline + auto-save
+- **v0.2.0** (2026-05-07) — scopeParser, ChangesTable, TestCasesTable, vendor field
+- **v0.1.0** (2026-05-07) — Foundation: Electron + React + Tailwind + Zustand scaffold
 
 ---
 
@@ -1121,12 +782,14 @@ Bearer token obtained by logging in to the terminal API stored only in Zustand s
 Never written to `config.json`, `userData`, or any file on disk.
 Reason: security — token expires and should not be persisted locally.
 Trade-off: requires re-login on every application start — acceptable.
+**Generalized in ADR-017** to apply to all API-backed modules (Tabs 4, 9, 10, 11, 12).
 
 ### ADR-010: Terminal API calls via IPC main process (not renderer fetch)
 All HTTP requests to the terminal API made in Electron main process via Node.js fetch.
 Renderer communicates with main via IPC (`ipcRenderer.invoke`), never directly with the API.
-Reason: no CORS issues (request originates from Node.js, not browser), token not visible in renderer DevTools.
+Reason: no CORS issues, token not visible in renderer DevTools.
 Trade-off: additional IPC layer — acceptable, consistent with rest of architecture.
+**Generalized:** the same rule applies to LLM API calls (Tab 6), SQL queries (Tab 10), and generic backend integrations (Tabs 11–12) — never call external services from renderer.
 
 ### ADR-011: Current package status = status[0] (first array element)
 API returns `status[]` array sorted descending by date — first element is the current package state.
@@ -1134,15 +797,37 @@ This rule is explicit in code as a named constant/comment, not a magic index.
 
 ### ADR-012: Slate Pro dark layout as UI design
 After evaluating four dark-mode layout concepts, Slate Pro was selected.
-Key parameters: background `#0f172a`, cards `#1e293b`, accent `#06b6d4` (cyan), left sidebar navigation.
-Reason: sidebar scales better than top tabs as the app grows; navy base provides strong contrast for status badges without glass/blur complexity.
-Trade-off: slightly more complex initial layout implementation — acceptable given long-term ergonomic benefit.
+Background `#0f172a`, cards `#1e293b`, accent `#06b6d4` (cyan), left sidebar navigation.
+Reason: sidebar scales better than top tabs as the app grows; navy base provides strong contrast for status badges.
 
 ### ADR-013: IpcResult<T> as universal IPC error contract
 All IPC handlers return `IpcResult<T>` — never throw raw errors across the IPC boundary.
 Error codes are typed (`IpcErrorCode`) so renderer can handle specific cases (e.g. `AUTH_EXPIRED` → show login prompt).
 Reason: consistent error handling across all modules, typed error codes prevent string-matching hacks in UI.
 Trade-off: slightly more boilerplate in handlers — acceptable, eliminates entire class of unhandled error bugs.
+
+### ADR-014: Split Tab 3 into 3a (Android Terminal) and 3b (Embedded Terminal)
+Android and Embedded regression suites are functionally disjoint — different hardware, different OS, different test coverage. Original plan of a single tab with a vendor toggle made it impossible to view both progress states at once and inflated single-tab complexity.
+Reason: independent navigation, independent session state, independent JSON data files, clearer mental model.
+Trade-off: two tabs in the sidebar instead of one — acceptable given sidebar nav scales well (ADR-012).
+
+### ADR-015: Hardware modules extracted to separate companion app
+Printer, Cashier, Flasher, and Card Reader modules live in a separate Electron app `Terminal Hardware Toolkit`.
+Reason: hardware modules require native dependencies (USB/serial/vendor drivers) that would contaminate QA Release HUB's dependency tree and risk breaking core release-management flows on every native rebuild. Different usage cadence (ad-hoc per-device vs. daily release work). Different audience. Two focused apps make a stronger portfolio narrative than one undifferentiated kombajn.
+Trade-off: cross-app coordination, if needed, requires a local IPC bridge or deep links — acceptable, far cheaper than the alternative.
+
+### ADR-016: Settings as gear menu in TitleBar, not a dedicated tab
+Settings / presets / history are not a daily workflow — they belong behind an icon, not on the sidebar.
+Reason: frees a sidebar slot, keeps focus on functional tabs, follows standard desktop UX (gear icon in title bar).
+Trade-off: slightly less discoverable for new users — acceptable, mitigated by a clear icon and tooltip.
+
+### ADR-017: Generic secureCredentialStore for all API-backed modules
+A reusable Zustand store / pattern (`secureCredentialStore`) holds all sensitive credentials (Bearer tokens, API keys for backend integrations, MSSQL passwords, LLM API keys when set per-session).
+- Credentials live in RAM only — never written to disk.
+- Connection profiles (base URL, login, connection string without password) live in `config.json`.
+- Per-module slots: `terminalMonitor`, `qrCodeApi`, `sqlConnections[]`, `cardApi`, `partnerApi`, `llmApi` (only if RAM mode chosen).
+Reason: generalizes ADR-009 across the project, prevents the temptation to persist tokens per module, single audit surface for security review.
+Trade-off: every API-backed module requires re-entry of secrets per session — acceptable, matches the project's security posture.
 
 ---
 
@@ -1159,11 +844,11 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 ### v0.2.0 — DONE ✅
 - [x] MetaForm: TEST/STAGE checkboxes displayed inline right of "Environment" label
 - [x] Pasting scope → correct table after Parse
-- [x] Parser: markdown link, plain ticket, no ticket, "(from iteration)" suffix, `v.X.Y`
-- [x] `npm run test` → green
+- [x] Parser: markdown link, plain ticket, bare ticket, no ticket, "(from iteration)" / "(z iteracji)" suffix, `v.X.Y`
+- [x] `npm run test` → green (30/30)
 - [x] TestCasesTable: No→Ticket matches table 1, Result=POSITIVE
 
-### v0.3.0 — DONE when:
+### v0.3.0 — DONE ✅
 - [x] Text can be typed in "Current result"
 - [x] Ctrl+V pastes screenshot inline
 - [x] "Generate report PDF" → file on disk
@@ -1171,28 +856,38 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [x] Images visible in PDF
 - [x] Auto-save: draft saved, dialog on restart
 
-### v0.4.0 — DONE when:
-- [x] Schedule Type A → correct structure in ScheduleBuilder
-- [x] Schedule Type B → developer names detected automatically
-- [x] Can add 1–3 testers dynamically
-- [ ] "Copy to clipboard" → text in Loop format with checkboxes
-- [ ] Pasting in Teams/Loop renders checkboxes correctly
-- [ ] "Clear" resets Tab 2
+### v0.3.1 — DONE ✅
+- [x] Vendor input required before Parse — inline error if empty
+- [x] PDF Section 2 reverts to plain text (TipTap rich-text layout issues in pdfmake)
 
-### v0.5.0 — DONE when:
-- [ ] Terminal A/B toggle loads correct TC set
-- [ ] Categories/subcategories display as accordion
-- [ ] Clicking PASS/FAIL/SKIP changes status and row color
+### v0.4.0 — DONE when (Tab 6 — AIO TC-GEN):
+- [ ] LLM provider selection (Claude / OpenAI) persisted in `config.json`
+- [ ] API key handling decided and implemented (RAM vs. encrypted file — see ADR placeholder)
+- [ ] Fix/mod description textarea + optional context fields
+- [ ] Mode toggle: single TC / TC suite / regression checklist items
+- [ ] Streaming preview of LLM output in renderer
+- [ ] Generated TCs editable inline before export
+- [ ] Export to Markdown, Tab 1 (TestCasesTable), Tab 3 JSON snippet
+- [ ] `npm run lint` + `npm run type-check` + `npm run test` → green
+- [ ] Manual flow: paste sample fix description → generated TCs visible → export to Tab 1 works
+
+### v0.5.0 — DONE when (Tab 3a — Android Terminal Regression):
+- [ ] Loading `regression-terminal-android.json` populates accordion
+- [ ] App version input + STAGE/TEST toggle
+- [ ] PASS/FAIL/SKIP buttons + Defect (`PROJ-####`) field per TC
+- [ ] Notes tooltip from JSON (read-only)
 - [ ] SKIP → row grayed out
-- [ ] Defect field: PROJ-#### can be entered
-- [ ] Progress bar updates in real time
-- [ ] "FAIL only" filter shows only red rows
-- [ ] "Generate Excel report" → .xlsx file on disk
-- [ ] Excel contains: header, categories as sections, result emoji, PROJ-#### hyperlinks
-- [ ] SKIP rows in xlsx have gray background
-- [ ] Dialog when leaving unfinished session
+- [ ] Progress bar + filters (All / FAIL only / Not executed)
+- [ ] "Generate Excel report" → .xlsx via openpyxl IPC
+- [ ] Excel: header, categories, emoji results, PROJ-#### hyperlinks, gray background for SKIP
+- [ ] Confirmation dialog when leaving unfinished session
+- [ ] Reset session button
 
-### v0.6.0 — DONE when:
+### v0.6.0 — DONE when (Tab 3b — Embedded Terminal Regression):
+- [ ] Same criteria as v0.5.0 but for `regression-terminal-embedded.json`
+- [ ] Tabs 3a and 3b can be open and progressed independently
+
+### v0.7.0 — DONE when (Tab 4 — Terminal Update Monitor):
 - [ ] "Log in" → Bearer token active, indicator green
 - [ ] Enter TID + "Fetch statuses" → update table populated
 - [ ] Each row shows current status with correct color badge
@@ -1201,22 +896,60 @@ Trade-off: slightly more boilerplate in handlers — acceptable, eliminates enti
 - [ ] Auto-refresh at selected interval works and updates table
 - [ ] Last 10 queries visible in history, click populates form
 - [ ] Expired token → error message + option to log in again
-- [ ] Base URL + login saved in config.json after restart
+- [ ] Base URL + login saved in `config.json` after restart
 - [ ] Password never appears in any file on disk
+- [ ] `secureCredentialStore` integration verified — token only in RAM
 
-### v0.9.0 — DONE when:
-- [ ] Details to be defined
+### v0.8.0 — DONE when (Tab 2 — Deployment Schedule finish):
+- [ ] "Copy to clipboard" → text in Loop format with checkboxes
+- [ ] Pasting in Teams/Loop renders checkboxes correctly
+- [ ] "Clear" resets Tab 2
+
+### v0.9.0 — DONE when (Diagnostic Pack):
+- [ ] Tab 7 — System Log Parser: load file, filter, search, highlight errors
+- [ ] Tab 8 — Parameter Parser: load text, parse parameters, validate values
+- [ ] Both modules pure-local — no API, no auth
+- [ ] Tests for parsers green
+
+### v0.10.0 — DONE when (Tab 9 — QRCode Generator):
+- [ ] Pre-implementation brief completed: existing code reviewed, port plan documented
+- [ ] API integration via `secureCredentialStore` and IPC bridge
+- [ ] Input: visit / registration payload → QR code rendered + downloadable
+- [ ] Connection profile saved in `config.json`, password RAM-only
+
+### v0.11.0 — DONE when (Settings polish):
+- [ ] Gear icon in TitleBar opens settings modal/panel
+- [ ] All current `config.json` fields editable from UI
+- [ ] PDF history view with re-open / open folder actions
+- [ ] Presets management (testers, vendor URL, summary text)
+
+### v0.12.0 — DONE when (Tab 10 — SQL Query):
+- [ ] Multiple MSSQL connection profiles in `config.json` (without passwords)
+- [ ] Connect → password prompt → token/connection in RAM
+- [ ] Query editor + run button
+- [ ] Result table with column types
+- [ ] Read-only mode toggle (default ON), explicit confirmation for write queries
+- [ ] Export result to CSV
+
+### v0.13.0 — DONE when (Tab 11 — Card Management):
+- [ ] Pre-implementation brief completed
+- [ ] Pluggable backend (REST / DB) defined and implemented for at least one provider
+- [ ] Card event history view
+- [ ] Credentials via `secureCredentialStore`
+
+### v0.14.0 — DONE when (Tab 12 — Partner Management):
+- [ ] Pre-implementation brief completed
+- [ ] Partner data CRUD via pluggable backend
+- [ ] Credentials via `secureCredentialStore`
 
 ### v1.0.0 — DONE when:
-- [ ] Details to be defined
-
-### v1.1.0 — DONE when:
-- [ ] Details to be defined
-
-### v1.2.0 — DONE when:
-- [ ] Details to be defined
+- [ ] All v0.x criteria green
+- [ ] `electron-builder` produces signed .exe
+- [ ] Full E2E walkthrough passes (Tab 1 → PDF, Tab 3a → Excel, Tab 4 → live fetch, Tab 6 → TC export)
+- [ ] README.md updated with screenshots and feature list
+- [ ] CHANGELOG.md complete
 
 ---
 
-*Last updated: 2026-05-11 (v0.4.0 sesja A)*
+*Last updated: 2026-05-12 (roadmap expansion + Tab 3 split + Hardware extraction + ADR-014/015/016/017)*
 *Project: QA Release HUB*
