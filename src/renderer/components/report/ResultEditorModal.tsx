@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -13,8 +13,21 @@ import {
   Quote,
   Code,
   ImagePlus,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
+import {
+  PX_TO_PT_RATIO,
+  IMAGE_MAX_WIDTH_PT,
+  IMAGE_MAX_HEIGHT_PT,
+} from '../../modules/pdfGenerator/constants'
+
+// A pasted image counts as "low resolution" when BOTH its natural width
+// and its natural height (converted to pt) fall under these fractions of
+// the maximum block size used in the PDF — i.e. it would only fill a small
+// part of a Section 2 block even at native size.
+const LOW_RES_WIDTH_FRACTION = 0.25
+const LOW_RES_HEIGHT_FRACTION = 0.5
 
 interface Props {
   initialContent: string
@@ -41,12 +54,37 @@ const EDITOR_CLASS =
   '[&_pre]:bg-bg-primary/60 [&_pre]:p-2 [&_pre]:rounded [&_pre]:my-2 [&_pre]:overflow-x-auto ' +
   '[&_pre_code]:bg-transparent [&_pre_code]:p-0'
 
-function insertImage(editor: Editor, file: File): void {
+function insertImage(
+  editor: Editor,
+  file: File,
+  onWarn: (msg: string | null) => void
+): void {
   if (!file.type.startsWith('image/')) return
   const reader = new FileReader()
   reader.onload = (e) => {
     const src = e.target?.result
-    if (typeof src === 'string') editor.chain().focus().setImage({ src }).run()
+    if (typeof src !== 'string') return
+    const probe = new window.Image()
+    probe.onload = () => {
+      const widthPx = probe.naturalWidth
+      const heightPx = probe.naturalHeight
+      const widthPt = widthPx * PX_TO_PT_RATIO
+      const heightPt = heightPx * PX_TO_PT_RATIO
+      const lowRes =
+        widthPt < IMAGE_MAX_WIDTH_PT * LOW_RES_WIDTH_FRACTION &&
+        heightPt < IMAGE_MAX_HEIGHT_PT * LOW_RES_HEIGHT_FRACTION
+      onWarn(
+        lowRes
+          ? `Low-resolution image (${widthPx}×${heightPx} px) — may be hard to read in the exported PDF.`
+          : null
+      )
+      editor.chain().focus().setImage({ src }).run()
+    }
+    probe.onerror = () => {
+      onWarn(null)
+      editor.chain().focus().setImage({ src }).run()
+    }
+    probe.src = src
   }
   reader.readAsDataURL(file)
 }
@@ -54,6 +92,7 @@ function insertImage(editor: Editor, file: File): void {
 export function ResultEditorModal({ initialContent, onSave, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const editorRef = useRef<Editor | null>(null)
+  const [imageWarning, setImageWarning] = useState<string | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -72,7 +111,9 @@ export function ResultEditorModal({ initialContent, onSave, onClose }: Props) {
           if (item.type.startsWith('image/')) {
             event.preventDefault()
             const file = item.getAsFile()
-            if (file && editorRef.current) insertImage(editorRef.current, file)
+            if (file && editorRef.current) {
+              insertImage(editorRef.current, file, setImageWarning)
+            }
             return true
           }
         }
@@ -84,7 +125,9 @@ export function ResultEditorModal({ initialContent, onSave, onClose }: Props) {
         for (const file of Array.from(files)) {
           if (file.type.startsWith('image/')) {
             event.preventDefault()
-            if (editorRef.current) insertImage(editorRef.current, file)
+            if (editorRef.current) {
+              insertImage(editorRef.current, file, setImageWarning)
+            }
             return true
           }
         }
@@ -196,11 +239,27 @@ export function ResultEditorModal({ initialContent, onSave, onClose }: Props) {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file && editor) insertImage(editor, file)
+              if (file && editor) insertImage(editor, file, setImageWarning)
               e.target.value = ''
             }}
           />
         </div>
+
+        {/* Low-resolution image warning */}
+        {imageWarning && (
+          <div className="flex items-start gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-200 text-xs shrink-0">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <span className="flex-1">{imageWarning}</span>
+            <button
+              type="button"
+              onClick={() => setImageWarning(null)}
+              className="text-amber-300/70 hover:text-amber-200 leading-none px-1"
+              aria-label="Dismiss warning"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Editor */}
         <div className="flex-1 overflow-y-auto p-4">
