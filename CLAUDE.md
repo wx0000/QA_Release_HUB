@@ -18,7 +18,7 @@
 
 ## Current Status
 
-- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator, CV killer feature). Last shipped: **v0.3.4** (2026-05-14, patch).
+- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator). Last shipped: **v0.3.4** (2026-05-14, patch).
 - **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3, v0.3.4 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
 - **Next concrete task:** v0.4.0 — Tab 6 AIO TC-GEN. Open architectural questions to resolve at session start:
   1. LLM provider default (Claude vs OpenAI) — likely Claude
@@ -27,7 +27,7 @@
   4. Cost guardrails: max tokens per call, monthly budget warning
 - **Tabs roadmap:** 11 functional tabs across 5 categories — full breakdown in `PROJECT.md` § Functional Scope. Notable:
   - Tab 3 split into 3a (Android Terminal Regression) and 3b (Embedded Terminal Regression) — ADR-014
-  - Tab 6 (AIO TC-GEN) promoted from v0.9 placeholder to v0.4 as CV killer feature
+  - Tab 6 (AIO TC-GEN) promoted from v0.9 placeholder to v0.4
   - Tab 2 (Deployment Schedule) demoted from v0.4 to v0.8 — sesja A done, Loop output / clipboard / clear deferred
   - Settings moved from sidebar tab to gear menu in TitleBar — ADR-016
   - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit` — ADR-015
@@ -464,7 +464,7 @@ These took time to figure out — don't re-solve them:
 
 **Strategic session (Claude.ai):**
 - Roadmap expanded from v0.1–v0.8 to v0.1–v1.0 with 11 functional tabs across 5 categories
-- Tab 6 (AIO TC-GEN) promoted to v0.4 as CV killer feature
+- Tab 6 (AIO TC-GEN) promoted to v0.4
 - Tab 3 split into 3a (Android Terminal) and 3b (Embedded Terminal)
 - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit`
 - Settings demoted from sidebar tab to gear menu in TitleBar

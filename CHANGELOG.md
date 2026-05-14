@@ -8,7 +8,7 @@ All notable changes to QA Release HUB follow [Semantic Versioning](https://semve
 
 ### Strategic decisions
 - **Roadmap expanded** from v0.1 – v0.8 to v0.1 – v1.0 with 11 functional tabs across 5 categories (Release Management, Terminal Testing, TC Generator, Diagnostic Tools, Backend Integrations).
-- **Tab 6 — AIO TC-GEN promoted to v0.4** as the project's CV-killer feature (LLM-based test case generator). Previously slotted at v0.8+ as "details TBD".
+- **Tab 6 — AIO TC-GEN promoted to v0.4** (LLM-based test case generator). Previously slotted at v0.8+ as "details TBD".
 - **Tab 3 split into Tab 3a (Android Terminal Regression) and Tab 3b (Embedded Terminal Regression).** Original single-tab toggle approach abandoned — two suites are functionally disjoint.
 - **Hardware modules extracted to a separate companion app** `Terminal Hardware Toolkit`: Printer App, Cashier App, Terminal Flasher, Card Reader. They will NOT live in QA Release HUB. Reason: native dependencies (USB/serial/vendor drivers), different usage cadence, cleaner CV story.
 - **Tab 5 (Settings) demoted from sidebar tab to gear menu in TitleBar.** Settings are not a daily workflow — they belong behind an icon.

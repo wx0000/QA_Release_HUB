@@ -1,7 +1,7 @@
 # QA Release HUB — Project Documentation
 
 > Desktop hub for managing QA deployments.
-> PDF report generation, deployment schedules, terminal regression testing, terminal update monitoring, AI-augmented test case generation, diagnostic and backend integration tools.
+> PDF report generation, deployment schedules, terminal regression testing, terminal update monitoring, LLM-based test case generation, diagnostic and backend integration tools.
 > Stack: Electron + React + TypeScript + Tailwind CSS + Vite
 
 ---
@@ -460,8 +460,6 @@ Explicit logic in a helper, no magic string.
 
 #### TAB 6: AIO TC-GEN (v0.4) — LLM-BASED TEST CASE GENERATOR
 
-> **Promoted to v0.4** as the project's CV-killer feature. The flagship demonstration of AI-augmented QA capabilities.
-
 ##### Goal
 Accept fix/mod descriptions (typically pasted from Jira tickets, release notes, or developer write-ups) and generate structured test cases using an LLM. Output suitable for direct use in Tab 3 regression or Tab 1 test cases.
 
@@ -689,7 +687,7 @@ Renderer pattern: `window.electronAPI.<domain>.<method>()` only — no raw `ipcR
 | v0.3.2 | Draft restore dialog, inline base64 images in PDF Section 2 cells | A | **DONE ✅** |
 | v0.3.3 | PDF Section 2 refactor — per-component blocks, inline images, TOC + footer back-link | A | **DONE ✅** |
 | v0.3.4 | TipTap toolbar (H1/H2/lists/quote/code), auto-save persists `testResults`, low-resolution image warning, [0.3.2] backfill | A | **DONE ✅** |
-| v0.4.0 | **Tab 6 — AIO TC-GEN (LLM-based)** ⭐ CV killer | C | TODO |
+| v0.4.0 | **Tab 6 — AIO TC-GEN (LLM-based)** | C | TODO |
 | v0.5.0 | Tab 3a — Android Terminal Regression | B | TODO |
 | v0.6.0 | Tab 3b — Embedded Terminal Regression | B | TODO |
 | v0.7.0 | Tab 4 — Terminal Update Monitor | B | TODO |
@@ -730,7 +728,7 @@ Same stack (Electron + React + TypeScript), separate repository. Houses:
 - **Terminal Flasher** — terminal service / configuration / installation operations
 - **Card Reader** — magnetic / chip card reader integration with binary data manipulation
 
-**Reason for separation:** these modules require native dependencies (USB, serial, vendor drivers) that would contaminate QA Release HUB's dependency tree. They also have a different cycle of use (ad-hoc, often hardware-specific failures) and a different audience. Keeping them separate also produces cleaner CV narrative: two focused apps rather than one kombajn.
+**Reason for separation:** these modules require native dependencies (USB, serial, vendor drivers) that would contaminate QA Release HUB's dependency tree. They also have a different cycle of use (ad-hoc, often hardware-specific failures) and a different audience.
 
 Cross-app coordination (if ever needed): local IPC bridge or deep links — not a shared process.
 
@@ -819,7 +817,7 @@ Trade-off: two tabs in the sidebar instead of one — acceptable given sidebar n
 
 ### ADR-015: Hardware modules extracted to separate companion app
 Printer, Cashier, Flasher, and Card Reader modules live in a separate Electron app `Terminal Hardware Toolkit`.
-Reason: hardware modules require native dependencies (USB/serial/vendor drivers) that would contaminate QA Release HUB's dependency tree and risk breaking core release-management flows on every native rebuild. Different usage cadence (ad-hoc per-device vs. daily release work). Different audience. Two focused apps make a stronger portfolio narrative than one undifferentiated kombajn.
+Reason: hardware modules require native dependencies (USB/serial/vendor drivers) that would contaminate QA Release HUB's dependency tree and risk breaking core release-management flows on every native rebuild. Different usage cadence (ad-hoc per-device vs. daily release work). Different audience.
 Trade-off: cross-app coordination, if needed, requires a local IPC bridge or deep links — acceptable, far cheaper than the alternative.
 
 ### ADR-016: Settings as gear menu in TitleBar, not a dedicated tab
