@@ -39,9 +39,10 @@ src/
 
 | Version | Feature |
 |---------|---------|
-| v0.1.0 | Foundation & Layout — current |
+| v0.1.0 | Foundation & Layout |
 | v0.2.0 | Parser + Tables |
 | v0.3.0 | Rich Text + PDF |
+| v0.3.4 | Patch — TipTap toolbar, auto-save testResults, image warning — **current** |
 | v0.4.0 | Deployment Schedule |
 | v0.5.0 | Terminal Regression |
 | v0.6.0 | Terminal Update Monitor |

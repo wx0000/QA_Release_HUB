@@ -60,6 +60,23 @@ docs(project): expand roadmap, split regression tab, extract hardware to separat
 
 ---
 
+## [0.3.4] — 2026-05-14
+
+### Added
+- **TipTap toolbar** in `ResultEditorModal.tsx`: 6 new buttons — Heading 1, Heading 2, Bullet List, Ordered List, Blockquote, Code Block. StarterKit already registered the node types and the PDF generator already rendered them (v0.3.3); the editor UI was the missing piece. Editor preview gets matching Tailwind variant styles so formatting is visible while editing, not only in the exported PDF.
+- **Low-resolution image warning on paste**: after every paste / drop / file-pick in `ResultEditorModal.tsx`, natural image dimensions are probed (`new Image().onload`), converted px → pt with the same `PX_TO_PT_RATIO` used by the PDF generator, and compared against `IMAGE_MAX_WIDTH_PT * 0.25` and `IMAGE_MAX_HEIGHT_PT * 0.5`. If both fall below threshold, a dismissable amber panel appears between toolbar and editor — informational only, never blocks insertion.
+- **`setTestResults(record)`** bulk-replace action in `reportStore` — needed to restore the entire `testResults` map from a draft in a single set call.
+
+### Changed
+- **Auto-save now persists TipTap rich content.** `DraftData` in `useDraft.ts` gained an optional `testResults?: Record<number, string>` field; `saveDraft` includes it, `loadDraft` restores it via the new `setTestResults` action. Before v0.3.4, a crash wiped all text + base64 images entered in "Current result" cells — only `meta`, `rawScope`, `changes` survived the autosave/reload cycle.
+- Backfilled `[0.3.2]` entry that had been missing from this CHANGELOG since 2026-05-10 (auto-save dialog + base64 images in PDF Section 2 — content was only in `CLAUDE.md` session log).
+
+### Known follow-ups (out of v0.3.4 scope)
+- `package.json` `"test": "vitest"` defaults to watch mode — should be `vitest run`, with a separate `test:watch` script. Surfaced during this session when full quality gates hung on the test step.
+- `README.md` Versioning table lags the roadmap in `PROJECT.md` (Tab order, version-to-feature mapping). Only the "current" marker was bumped in v0.3.4 — full re-sync deferred.
+
+---
+
 ## [0.3.3] — 2026-05-14
 
 ### Refactored

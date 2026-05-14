@@ -737,6 +737,9 @@ Cross-app coordination (if ever needed): local IPC bridge or deep links — not 
 
 > See `CHANGELOG.md` for the full history. Headlines only here.
 
+- **v0.3.4** (2026-05-14) — TODOs cleanup: TipTap toolbar (H1/H2/lists/quote/code), auto-save persists `testResults`, low-resolution image warning, [0.3.2] backfill
+- **v0.3.3** (2026-05-14) — PDF Section 2 refactor: per-component blocks with inline images, TOC + footer back-link
+- **v0.3.2** (2026-05-10) — Draft restore dialog on app start, base64 images inline in PDF Section 2 cells
 - **v0.3.1** (2026-05-10) — Vendor required guard, PDF Section 2 plain-text revert
 - **v0.3.0** (2026-05-08) — TipTap + PDF generation pipeline + auto-save
 - **v0.2.0** (2026-05-07) — scopeParser, ChangesTable, TestCasesTable, vendor field
@@ -971,5 +974,5 @@ pageBreakBefore callback handles inconsistently for non-table nodes.
 
 ---
 
-*Last updated: 2026-05-12 (roadmap expansion + Tab 3 split + Hardware extraction + ADR-014/015/016/017)*
+*Last updated: 2026-05-14 (v0.3.4 patch: TipTap toolbar, auto-save testResults, image warning, [0.3.2] backfill)*
 *Project: QA Release HUB*

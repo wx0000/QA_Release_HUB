@@ -18,8 +18,8 @@
 
 ## Current Status
 
-- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator, CV killer feature)
-- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
+- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator, CV killer feature). Last shipped: **v0.3.4** (2026-05-14, patch).
+- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3, v0.3.4 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
 - **Next concrete task:** v0.4.0 — Tab 6 AIO TC-GEN. Open architectural questions to resolve at session start:
   1. LLM provider default (Claude vs OpenAI) — likely Claude
   2. API key storage: encrypted in `config.json` vs RAM-only vs OS keychain
@@ -32,11 +32,9 @@
   - Settings moved from sidebar tab to gear menu in TitleBar — ADR-016
   - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit` — ADR-015
 - **Blockers:** none
-- **Surfaced TODOs (post-v0.3.3):**
-  1. Auto-save TipTap "current result" content per row in `drafts/current.json` — currently only `rawScope` survives a crash; rich content (text + base64 images) is lost
-  2. TipTap toolbar in UI for headings / lists / blockquote / codeBlock — PDF generator already supports these node types, but the editor has no UI controls to enable them
-  3. Image resolution validation on TipTap paste — warn user when natural dpi is too low for readable PDF even at viewer zoom (e.g. paste of a downscaled thumbnail)
-  4. Missing CHANGELOG entry for `[0.3.2]` — auto-save dialog + images in PDF, present in CLAUDE.md session log but never landed in CHANGELOG
+- **Surfaced TODOs (post-v0.3.4):**
+  1. `package.json` `"test": "vitest"` defaults to watch mode — change to `vitest run` and add separate `test:watch`. Surfaced during v0.3.4 quality gates when full `npm run test` hung.
+  2. `README.md` Versioning table is out of sync with `PROJECT.md` roadmap (Tab order, version-to-feature mapping). Only "current" marker bumped in v0.3.4 — full re-sync deferred.
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
 ---
@@ -358,6 +356,48 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-14 — v0.3.4: TODOs cleanup patch (4 surfaced TODOs from v0.3.3)
+
+**Goal:** Close all 4 surfaced TODOs from v0.3.3 session log as a single patch release before entering v0.4.0 (Tab 6 AIO TC-GEN). First walk-through of the new "Definition of Done — Release Checklist" (patch path) added at the end of CLAUDE.md earlier in this session.
+
+**4 feature commits on `main`:**
+- `a1c2753` — **docs(changelog): backfill [0.3.2] entry** — missing `[0.3.2] — 2026-05-10` section (auto-save dialog + base64 images in PDF) inserted between `[0.3.3]` and `[0.3.1]`. Content reconstructed from CLAUDE.md session log 2026-05-10.
+- `e14fa02` — **feat(draft): persist testResults in auto-save** — `DraftData` in `useDraft.ts` extended with optional `testResults?: Record<number, string>`; `saveDraft` includes it, `loadDraft` restores it via new `setTestResults(record)` bulk-replace action in `reportStore`. Before v0.3.4 a crash wiped TipTap rich content (text + base64 images) in "Current result" cells.
+- `8fa818f` — **feat(editor): add toolbar buttons for headings/lists/blockquote/codeblock** — 6 new buttons in `ResultEditorModal.tsx` toolbar (H1, H2, BulletList, OrderedList, Blockquote, CodeBlock). StarterKit already registered the node types and the PDF generator already rendered them (v0.3.3); editor UI was the missing piece. `EDITOR_CLASS` extended with matching Tailwind variant classes so formatting is visible in the editor preview, not only in the exported PDF.
+- `25dadfa` — **feat(editor): warn on low-resolution image paste** — `insertImage` in `ResultEditorModal.tsx` now probes natural dimensions via `new Image().onload`, converts px→pt with `PX_TO_PT_RATIO`, and if both width and height fall below `IMAGE_MAX_WIDTH_PT * 0.25` AND `IMAGE_MAX_HEIGHT_PT * 0.5` shows a dismissable amber panel between toolbar and editor. Informational only — never blocks insertion.
+
+**Files changed:**
+- `CHANGELOG.md` — `[0.3.2]` backfill + `[0.3.4]` entry
+- `src/renderer/hooks/useDraft.ts` — `DraftData.testResults?` + save/load wiring
+- `src/renderer/store/reportStore.ts` — new `setTestResults(record)` bulk-replace action
+- `src/renderer/components/report/ResultEditorModal.tsx` — toolbar (+6 buttons), image-resolution warning panel, EDITOR_CLASS extended for new node types
+- `CLAUDE.md` — Current Status (last shipped v0.3.4, surfaced TODOs reset), this Session Log entry
+- `PROJECT.md` — Changelog headlines backfilled for v0.3.2, v0.3.3 + new v0.3.4
+- `README.md` — Versioning table: "current" marker moved to v0.3.4 (full roadmap re-sync deferred)
+
+**Quality gates:**
+- `npm run type-check` ✅
+- `npm run lint` ✅
+- `npx vitest run` ✅ — 137 tests passed (8 files, 394ms)
+
+**Gotcha surfaced during session:** `npm run test` (defined as `"test": "vitest"` in `package.json`) defaults to **watch mode** and hangs the quality-gate gate-keeper script. Used `npx vitest run` directly to bypass. Added as Surfaced TODO #1 — script should be changed to `vitest run` with separate `test:watch` next session.
+
+**Tested manually (user-driven smoke test, all passed):**
+- [x] Edit testResult content + image → wait 30s / refresh → Draft detected dialog → Load restores text + image
+- [x] Toolbar H1/H2/BulletList/OrderedList/Blockquote/CodeBlock all toggle correctly with active state
+- [x] PDF generation: headings/lists/blockquote/codeblock render in Section 2
+- [x] Paste small image (~100×100 px) → amber warning panel; paste large image → no warning; `×` dismiss works
+
+**Surfaced TODOs (replace previous list — all 4 prior items resolved):**
+1. `package.json` `"test"` script defaults to watch mode — change to `vitest run` and add `test:watch`.
+2. `README.md` Versioning table out of sync with `PROJECT.md` roadmap — only "current" marker bumped; full re-sync deferred.
+
+**Process notes (first run of new Definition of Done — Release Checklist):**
+- Plan mode used twice: initial plan + one re-entry during execution to refresh status. The "Status (live)" block at top of plan file proved useful for resuming after re-entry — recommend keeping that pattern.
+- 4 incremental feature commits + 1 docs commit + `npm version patch` (auto chore commit + tag) is the patch flow; clean separation works well.
+
+---
+
 ### 2026-05-13/14 — v0.3.3: PDF Section 2 refactor (per-component blocks + inline images)
 
 **Goal:** Replace 8-col "Test cases" table in PDF Section 2 with per-component block layout so screenshots and prose in "Current result" are readable at default zoom (cramped 120pt table cell → full-width 782pt A4-landscape).
@@ -655,7 +695,7 @@ v0.4.0 — Tab 6 AIO TC-GEN (LLM-based test case generator). Open architectural 
 
 ---
 
-_Last updated: 2026-05-14_
+_Last updated: 2026-05-14 (v0.3.4 patch)_
 _Project: QA Release HUB_
 
 ---
