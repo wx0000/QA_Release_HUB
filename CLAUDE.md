@@ -19,7 +19,7 @@
 ## Current Status
 
 - **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator, CV killer feature)
-- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
+- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
 - **Next concrete task:** v0.4.0 — Tab 6 AIO TC-GEN. Open architectural questions to resolve at session start:
   1. LLM provider default (Claude vs OpenAI) — likely Claude
   2. API key storage: encrypted in `config.json` vs RAM-only vs OS keychain
@@ -32,6 +32,11 @@
   - Settings moved from sidebar tab to gear menu in TitleBar — ADR-016
   - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit` — ADR-015
 - **Blockers:** none
+- **Surfaced TODOs (post-v0.3.3):**
+  1. Auto-save TipTap "current result" content per row in `drafts/current.json` — currently only `rawScope` survives a crash; rich content (text + base64 images) is lost
+  2. TipTap toolbar in UI for headings / lists / blockquote / codeBlock — PDF generator already supports these node types, but the editor has no UI controls to enable them
+  3. Image resolution validation on TipTap paste — warn user when natural dpi is too low for readable PDF even at viewer zoom (e.g. paste of a downscaled thumbnail)
+  4. Missing CHANGELOG entry for `[0.3.2]` — auto-save dialog + images in PDF, present in CLAUDE.md session log but never landed in CHANGELOG
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
 ---
@@ -353,6 +358,61 @@ These took time to figure out — don't re-solve them:
 
 ## Session Log
 
+### 2026-05-13/14 — v0.3.3: PDF Section 2 refactor (per-component blocks + inline images)
+
+**Goal:** Replace 8-col "Test cases" table in PDF Section 2 with per-component block layout so screenshots and prose in "Current result" are readable at default zoom (cramped 120pt table cell → full-width 782pt A4-landscape).
+
+**Files added (8 new modules + 7 test files):**
+- `src/renderer/modules/pdfGenerator/constants.ts` — all labels, colors, dimensions, anchor IDs (i18n-ready `LABELS.*`)
+- `blockBuilder.ts` (+ test) — anchor (id + pageBreak: 'before' on tiny text node) + headerTable (unbreakable, gray bg) + content/placeholder
+- `tocBuilder.ts` (+ test) — Section 2 TOC table; per-cell `linkToDestination` on Nr/Component/Version/Result, `pageReference` on Page column (no link — pdfmake conflict)
+- `footerBuilder.ts` (+ test) — page-range footer with "Back to TOC" link (simple rule: `currentPage > 1 && currentPage < pageCount`)
+- `tiptapToPdfContent.ts` (+ test) — full TipTap StarterKit walker: paragraph, heading (H1–H6), bulletList, orderedList, blockquote, codeBlock, horizontalRule, image + inline marks (bold/italic/strike/underline/code-gray-bg)
+- `imageHelper.ts` (+ test) — px→pt + `computeImageSize` discriminated union (natural vs. fit) checking BOTH width and height bounds
+- `resolveImageDimensions.ts` (+ test) — pre-resolves image dims (loads each base64 dataUri via `new Image()`, returns `Map<src, ImageSize>`) so builder stays sync
+
+**Files modified:**
+- `reportTemplate.ts` — wires new builders, adds PDF metadata (`info` block), `compress: false`, pageBreak on Section 3
+- `pdfGenerator.ts` — Roboto-only font registry (Courier doesn't work in Electron VFS — no `.afm` files bundled with `vfs_fonts.js`)
+- `PdfPreview.tsx` — `await resolveImageDimensions(testResults)` before sync `buildDocDefinition(data, imageSizes)`
+- `scopeParser.test.ts` — +2 defensive tests for multi-MOD/FIX per component (each becomes separate ParsedChange with sequential global `nr`)
+- `tsconfig.web.json` — removed deprecated `baseUrl`, made `paths` relative (TS 7.0 deprecation)
+- `PROJECT.md` — ADR-018 + ADR-019
+- `CHANGELOG.md` — `[0.3.3]` entry
+
+**Architectural decisions:**
+- ADR-018 — PDF Section 2 as per-component blocks (replaces 8-col test cases table)
+- ADR-019 — TOC anchor on Section 2 title (substantial text node); `pageReference` cells without `linkToDestination` (pdfmake auto-link conflict)
+
+**5 rounds of bugfixes after manual Electron tests:**
+1. **Courier font fallback** — `data/Courier.afm not found in virtual file system`. pdfmake's bundled VFS only ships Roboto; standard PDF fonts (Courier/Helvetica/Times) need `.afm` files. Code blocks now use Roboto + gray background only.
+2. **`pageReference id not found` crash** — `id` on table-wrapper gets lost during pdfmake layout decomposition; fix: anchor on tiny text node (`text: ' ', fontSize: 1`), table-wrapper has no id, no pageBreak.
+3. **Landscape sizing + image overflow** — `TEXT_COLUMN_WIDTH_PT` 470→782 (portrait assumption), `IMAGE_MAX_HEIGHT_PT` 650→480 (image was overflowing onto footer: usable A4 landscape vertical = 505pt, 25pt safety margin). New constant `IMAGE_MAX_WIDTH_PT` for semantic separation from text column.
+4. **TOC hyperlinks + footer back-link** — `linkToDestination` removed from `pageReference` cell (pdfmake auto-link conflicts); `pageBreakBefore` callback fires unreliably for non-table nodes → footer scope tracking via closure ABANDONED, replaced with simple page-range rule (Option A: middle pages only).
+5. **Unicode glyphs `✓ ↑ —` removed** — Roboto VFS doesn't include them, rendered as "tofu" placeholder. `formatEnvironment` rewritten to comma-joined list (`"TEST, STAGE"` / `"—"` fallback).
+
+**Additional UI fixes during testing:**
+- Removed `BLOCK_CURRENT_RESULT_LABEL` ("Current result:") — redundant under block header
+- Header layout redesign: MOD/FIX badge moved from top row to bottom row (`[BADGE] : <description>` format), replacing the old `"Change description:"` label
+- `"Table of contents"` subheader removed — TOC table sits directly under "2. Test cases" section title
+- Section 2 title no longer has `pageBreak: 'before'` — TOC table flows naturally under Section 1 table on page 1
+- Empty TipTap content → renders `"No test content provided"` placeholder (italic, gray)
+- `hasVisibleContent` walker detects whitespace-only TipTap docs → placeholder triggered
+
+**Checks:**
+- `npm run type-check` ✅
+- `npm run lint` ✅
+- `npm run test` ✅ — **137 tests** (was 30 before this session)
+
+**Tested manually:** Electron app — generated test PDF with multiple components, mixed empty/long content, inline images at various resolutions. Verified: full-width image rendering, TOC click navigation, "Back to TOC" footer link on Section 2 pages, placeholder for empty current result, badge layout (MOD/FIX colored pill in bottom row), comma-separated environment label, no Unicode "tofu" boxes.
+
+**Commits in this session (3):**
+- `9380593` — refactor(pdf): redesign Section 2 as per-component blocks with inline images
+- `ecf21da` — docs: add ADR-018 and ADR-019 for PDF Section 2 refactor
+- `9cc96c5` — chore(tsconfig): remove deprecated baseUrl, use relative paths
+
+**Surfaced TODOs (recorded in Current Status):** TipTap content auto-save, TipTap toolbar UI, image resolution validation on paste, missing `[0.3.2]` CHANGELOG entry.
+
 ### 2026-05-13 — Roadmap expansion + git history rewrite (docs + ops)
 
 **Strategic session (Claude.ai):**
@@ -595,5 +655,5 @@ v0.4.0 — Tab 6 AIO TC-GEN (LLM-based test case generator). Open architectural 
 
 ---
 
-_Last updated: 2026-05-08_
+_Last updated: 2026-05-14_
 _Project: QA Release HUB_
