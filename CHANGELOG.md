@@ -87,6 +87,21 @@ docs(project): expand roadmap, split regression tab, extract hardware to separat
 
 ---
 
+## [0.3.2] — 2026-05-10
+
+### Added
+- **Draft restore dialog** on app start (`DraftRestoreDialog.tsx`): "Draft detected" modal with formatted `savedAt` timestamp and Load / Discard buttons. Rendered as a global overlay so autosave behaves identically regardless of the active tab.
+- `useDraft.peekDraft()` — returns `savedAt | null` without loading full draft content (used to decide whether to show the restore dialog on startup).
+- `useDraft.clearDraft()` — writes `null` to `userData/drafts/current.json` when the user chooses Discard.
+- **Inline base64 images in PDF Section 2** "Current result" cells: text + images now render together inside `{ stack: [...] }` cell content, width clamped to 120pt.
+
+### Changed
+- `useDraft.ts`: all exported functions wrapped in `useCallback`; the autosave `useEffect` now has the correct `[saveDraft]` dependency.
+- `App.tsx`: `useDraft` lifted to the root component; `peekDraft` runs once on mount; restore dialog mounted as overlay above all tabs.
+- `reportTemplate.ts`: Section 2 "Current result" cell switched from plain-text (`tiptapToText`) to rich-content (`tiptapToCell`). New helpers: `TipTapNode` interface, `PdfRun` type, `parseParagraphInlines` (bold / italic / hardBreak).
+
+---
+
 ## [0.3.1] — 2026-05-10
 
 ### Changed
