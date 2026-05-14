@@ -1,13 +1,32 @@
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces'
 import type { ReportData, ReportMeta } from '../../types/report.types'
-
-const HEADER_FILL = '#1e293b'
-const HEADER_COLOR = '#ffffff'
-const ROW_ALT_FILL = '#f8fafc'
-const BORDER_COLOR = '#e2e8f0'
+import { buildComponentBlock } from './blockBuilder'
+import { buildSection2TOC } from './tocBuilder'
+import { buildFooter } from './footerBuilder'
+import type { ImageSizeMap } from './tiptapToPdfContent'
+import {
+  LABELS,
+  TOC_ANCHOR,
+  HEADER_FILL,
+  HEADER_COLOR,
+  ROW_ALT_FILL,
+  BORDER_COLOR,
+  LINE_COLOR,
+  APP_TITLE_COLOR,
+  REPORT_TITLE_COLOR,
+  SECTION_TITLE_COLOR,
+  BODY_TEXT_COLOR,
+  APP_TITLE_FONT_SIZE,
+  REPORT_TITLE_FONT_SIZE,
+  SECTION_TITLE_FONT_SIZE,
+  DEFAULT_FONT_SIZE,
+  PAGE_MARGINS,
+  PAGE_INNER_WIDTH_LANDSCAPE_PT
+} from './constants'
 
 function deploymentNumber(suffix: string): string {
-  return `R_01.00.${suffix.padStart(2, '0')}.00`
+  const safe = (suffix || '00').padStart(2, '0')
+  return `R_01.00.${safe}.00`
 }
 
 function formatDate(iso: string): string {
@@ -15,9 +34,10 @@ function formatDate(iso: string): string {
 }
 
 function formatEnvironment(meta: ReportMeta): string {
-  const test = meta.environmentTest ? 'TEST ✓' : 'TEST —'
-  const stage = meta.environmentStage ? 'STAGE ✓' : 'STAGE —'
-  return `${test}   ${stage}`
+  const active: string[] = []
+  if (meta.environmentTest) active.push(LABELS.ENV_TEST)
+  if (meta.environmentStage) active.push(LABELS.ENV_STAGE)
+  return active.length === 0 ? LABELS.ENV_NONE : active.join(', ')
 }
 
 function headerCell(text: string): TableCell {
@@ -28,69 +48,6 @@ function cell(text: string, odd: boolean, extra?: object): TableCell {
   return { text, ...(odd ? { fillColor: ROW_ALT_FILL } : {}), ...extra }
 }
 
-// Minimal TipTap node shape — only fields we actually read
-interface TipTapNode {
-  type: string
-  text?: string
-  marks?: Array<{ type: string }>
-  attrs?: { src?: string }
-  content?: TipTapNode[]
-}
-
-type PdfRun = { text: string; bold?: boolean; italics?: boolean }
-
-function parseParagraphInlines(nodes: TipTapNode[]): PdfRun[] {
-  return nodes.flatMap<PdfRun>(child => {
-    if (child.type === 'text' && child.text) {
-      return [{
-        text: child.text,
-        ...(child.marks?.some(m => m.type === 'bold') && { bold: true as const }),
-        ...(child.marks?.some(m => m.type === 'italic') && { italics: true as const }),
-      }]
-    }
-    if (child.type === 'hardBreak') return [{ text: '\n' }]
-    return []
-  })
-}
-
-// Converts TipTap JSON to a pdfmake TableCell with text runs and inline images.
-// Falls back to empty cell on parse error or empty content.
-function tiptapToCell(json: string, odd: boolean): TableCell {
-  const fillColor = odd ? ROW_ALT_FILL : undefined
-  const empty = (): TableCell =>
-    (fillColor ? { text: '', fillColor } : { text: '' }) as TableCell
-
-  if (!json) return empty()
-
-  try {
-    const parsed: unknown = JSON.parse(json)
-    if (typeof parsed !== 'object' || parsed === null) return empty()
-
-    const doc = parsed as TipTapNode
-    if (!Array.isArray(doc.content)) return empty()
-
-    const blocks: Content[] = []
-
-    for (const node of doc.content) {
-      if (node.type === 'paragraph' && Array.isArray(node.content)) {
-        const runs = parseParagraphInlines(node.content)
-        if (runs.length > 0) {
-          blocks.push({ text: runs } as unknown as Content)
-        }
-      } else if (node.type === 'image' && typeof node.attrs?.src === 'string') {
-        blocks.push({ image: node.attrs.src, width: 120, margin: [0, 2, 0, 2] } as unknown as Content)
-      }
-    }
-
-    if (blocks.length === 0) return empty()
-
-    const body = blocks.length === 1 ? { ...blocks[0] as object } : { stack: blocks }
-    return (fillColor ? { ...body, fillColor } : body) as unknown as TableCell
-  } catch {
-    return empty()
-  }
-}
-
 const thinBorder = {
   hLineWidth: () => 0.5,
   vLineWidth: () => 0.5,
@@ -98,7 +55,10 @@ const thinBorder = {
   vLineColor: () => BORDER_COLOR
 }
 
-export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
+export function buildDocDefinition(
+  data: ReportData,
+  imageSizes: ImageSizeMap
+): TDocumentDefinitions {
   const { meta, changes, testResults = {} } = data
   const depNum = deploymentNumber(meta.deploymentSuffix)
   const today = formatDate(new Date().toISOString())
@@ -116,61 +76,65 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
     ]
   })
 
-  const section2Rows: TableCell[][] = changes.map((c, i) => {
-    const odd = i % 2 !== 0
-    return [
-      cell(String(c.nr), odd),
-      cell(c.component, odd),
-      cell(c.version, odd),
-      cell(c.type, odd),
-      cell(c.changeDescription, odd),
-      cell(c.ticket, odd),
-      tiptapToCell(testResults[c.nr] ?? '', odd),
-      cell('POSITIVE', odd, { bold: true, color: '#16a34a' })
-    ]
-  })
+  const section2TOC = buildSection2TOC(changes)
+  const section2Blocks = changes.flatMap(c =>
+    buildComponentBlock(c, testResults[c.nr] ?? '', imageSizes)
+  )
+
+  const footerBuilder = buildFooter(depNum)
 
   const content: Content[] = [
-    { text: 'QA RELEASE HUB', style: 'appTitle' },
+    { text: LABELS.APP_TITLE, style: 'appTitle' },
     {
       canvas: [
-        { type: 'line', x1: 0, y1: 0, x2: 782, y2: 0, lineWidth: 1, lineColor: '#cbd5e1' }
+        {
+          type: 'line',
+          x1: 0,
+          y1: 0,
+          x2: PAGE_INNER_WIDTH_LANDSCAPE_PT,
+          y2: 0,
+          lineWidth: 1,
+          lineColor: LINE_COLOR
+        }
       ]
     },
-    { text: 'DEPLOYMENT TEST REPORT', style: 'reportTitle', margin: [0, 8, 0, 14] },
+    { text: LABELS.REPORT_TITLE, style: 'reportTitle', margin: [0, 8, 0, 14] },
 
     {
       table: {
         widths: [130, '*'],
         body: [
-          [{ text: 'Deployment number:', bold: true }, { text: depNum, bold: true }],
           [
-            { text: 'Test period:', bold: true },
+            { text: LABELS.META_DEPLOYMENT_NUMBER, bold: true },
+            { text: depNum, bold: true }
+          ],
+          [
+            { text: LABELS.META_TEST_PERIOD, bold: true },
             `${formatDate(meta.dateFrom)} — ${formatDate(meta.dateTo)}`
           ],
-          [{ text: 'Tester:', bold: true }, meta.tester],
-          [{ text: 'Environment:', bold: true }, formatEnvironment(meta)],
-          [{ text: 'Generated:', bold: true }, today]
+          [{ text: LABELS.META_TESTER, bold: true }, meta.tester],
+          [{ text: LABELS.META_ENVIRONMENT, bold: true }, formatEnvironment(meta)],
+          [{ text: LABELS.META_GENERATED, bold: true }, today]
         ]
       },
       layout: 'noBorders',
       margin: [0, 0, 0, 20]
     },
 
-    { text: '1. Components and changes', style: 'sectionTitle' },
+    { text: LABELS.SECTION_1_TITLE, style: 'sectionTitle' },
     {
       table: {
         headerRows: 1,
         widths: [25, 110, 70, 40, '*', 70, 75],
         body: [
           [
-            headerCell('No'),
-            headerCell('Component'),
-            headerCell('Version'),
-            headerCell('Type'),
-            headerCell('Change description'),
-            headerCell('Ticket'),
-            headerCell('Status')
+            headerCell(LABELS.SECTION_1_HEADER_NR),
+            headerCell(LABELS.SECTION_1_HEADER_COMPONENT),
+            headerCell(LABELS.SECTION_1_HEADER_VERSION),
+            headerCell(LABELS.SECTION_1_HEADER_TYPE),
+            headerCell(LABELS.SECTION_1_HEADER_DESCRIPTION),
+            headerCell(LABELS.SECTION_1_HEADER_TICKET),
+            headerCell(LABELS.SECTION_1_HEADER_STATUS)
           ],
           ...section1Rows
         ]
@@ -179,41 +143,31 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
       margin: [0, 4, 0, 20]
     },
 
-    { text: '2. Test cases', style: 'sectionTitle' },
     {
-      table: {
-        headerRows: 1,
-        widths: [25, 90, 65, 40, 130, 65, '*', 60],
-        body: [
-          [
-            headerCell('No'),
-            headerCell('Component'),
-            headerCell('Version'),
-            headerCell('Type'),
-            headerCell('Change description'),
-            headerCell('Ticket'),
-            headerCell('Current result'),
-            headerCell('Result')
-          ],
-          ...section2Rows
-        ]
-      },
-      layout: thinBorder,
-      margin: [0, 4, 0, 20]
+      id: TOC_ANCHOR,
+      text: LABELS.SECTION_2_TITLE,
+      style: 'sectionTitle',
+      margin: [0, 8, 0, 6]
     },
+    ...section2TOC,
+    ...section2Blocks,
 
-    { text: '3. Summary and recommendations', style: 'sectionTitle' },
+    {
+      text: LABELS.SECTION_3_TITLE,
+      style: 'sectionTitle',
+      pageBreak: 'before'
+    },
     {
       table: {
         widths: [130, '*'],
         body: [
           [
-            { text: 'Summary:', bold: true },
-            'All tests completed with positive results.\nNo critical errors detected.'
+            { text: LABELS.SECTION_3_SUMMARY_LABEL, bold: true },
+            LABELS.SECTION_3_SUMMARY_TEXT
           ],
           [
-            { text: 'Recommendation:', bold: true },
-            'Deployment to production environment can be recommended.'
+            { text: LABELS.SECTION_3_RECOMMENDATION_LABEL, bold: true },
+            LABELS.SECTION_3_RECOMMENDATION_TEXT
           ]
         ]
       },
@@ -225,26 +179,42 @@ export function buildDocDefinition(data: ReportData): TDocumentDefinitions {
   return {
     pageSize: 'A4',
     pageOrientation: 'landscape',
-    pageMargins: [30, 50, 30, 40],
+    pageMargins: PAGE_MARGINS,
+    compress: false,
 
-    footer: (currentPage, pageCount) => ({
-      text: `QA Release HUB  |  Deployment ${depNum}  |  Page ${currentPage} / ${pageCount}`,
-      alignment: 'center',
-      fontSize: 8,
-      color: '#94a3b8',
-      margin: [0, 10]
-    }),
+    info: {
+      title: `${depNum}${LABELS.PDF_TITLE_SUFFIX}`,
+      author: meta.tester || LABELS.PDF_AUTHOR_FALLBACK,
+      creator: LABELS.PDF_CREATOR,
+      subject: LABELS.PDF_SUBJECT
+    },
+
+    footer: footerBuilder.footer,
 
     styles: {
-      appTitle: { fontSize: 16, bold: true, color: '#1e293b', margin: [0, 0, 0, 6] },
-      reportTitle: { fontSize: 13, bold: true, color: '#334155' },
-      sectionTitle: { fontSize: 11, bold: true, color: '#1e293b', margin: [0, 0, 0, 6] }
+      appTitle: {
+        fontSize: APP_TITLE_FONT_SIZE,
+        bold: true,
+        color: APP_TITLE_COLOR,
+        margin: [0, 0, 0, 6]
+      },
+      reportTitle: {
+        fontSize: REPORT_TITLE_FONT_SIZE,
+        bold: true,
+        color: REPORT_TITLE_COLOR
+      },
+      sectionTitle: {
+        fontSize: SECTION_TITLE_FONT_SIZE,
+        bold: true,
+        color: SECTION_TITLE_COLOR,
+        margin: [0, 0, 0, 6]
+      }
     },
 
     defaultStyle: {
       font: 'Roboto',
-      fontSize: 9,
-      color: '#1e293b'
+      fontSize: DEFAULT_FONT_SIZE,
+      color: BODY_TEXT_COLOR
     },
 
     content

@@ -3,6 +3,7 @@ import { Button } from '../ui/Button'
 import { useReportStore } from '../../store/reportStore'
 import { buildDocDefinition } from '../../modules/pdfGenerator/reportTemplate'
 import { createPdfBase64 } from '../../modules/pdfGenerator/pdfGenerator'
+import { resolveImageDimensions } from '../../modules/pdfGenerator/resolveImageDimensions'
 
 type Status =
   | { type: 'idle' }
@@ -25,7 +26,10 @@ export function PdfPreview() {
     setStatus({ type: 'loading' })
 
     try {
-      const pdfBase64 = await createPdfBase64(buildDocDefinition({ meta, changes, testResults }))
+      const imageSizes = await resolveImageDimensions(testResults)
+      const pdfBase64 = await createPdfBase64(
+        buildDocDefinition({ meta, changes, testResults }, imageSizes)
+      )
       const depNum = `R_01.00.${(meta.deploymentSuffix || 'XX').padStart(2, '0')}.00`
       const defaultFilename = `${depNum}_report.pdf`
 

@@ -220,4 +220,42 @@ describe('scopeParser — multi-component', () => {
     expect(changes[0]).toMatchObject({ nr: 1, component: 'ComponentA', ticket: 'PROJ-1234' })
     expect(changes[1]).toMatchObject({ nr: 2, component: 'ComponentB', ticket: 'PROJ-5678' })
   })
+
+  test('multiple MOD/FIX under a single component each become a separate ParsedChange', () => {
+    const raw = `
+* ComponentA v2.6.1
+   * MOD - Refactor X [PROJ-1111] Done
+   * FIX - Naprawa Y [PROJ-2222] Done
+   * MOD - Dodanie Z [PROJ-3333] In Review
+`
+    const { changes } = parseScope(raw)
+    expect(changes).toHaveLength(3)
+    for (const c of changes) {
+      expect(c.component).toBe('ComponentA')
+      expect(c.version).toBe('v2.6.1')
+    }
+    expect(changes.map(c => c.nr)).toEqual([1, 2, 3])
+    expect(new Set(changes.map(c => c.nr)).size).toBe(3)
+    expect(changes[0]).toMatchObject({ type: 'MOD', ticket: 'PROJ-1111', status: 'Done' })
+    expect(changes[1]).toMatchObject({ type: 'FIX', ticket: 'PROJ-2222', status: 'Done' })
+    expect(changes[2]).toMatchObject({ type: 'MOD', ticket: 'PROJ-3333', status: 'In Review' })
+  })
+
+  test('sequential nr is globally unique across components', () => {
+    const raw = `
+* ComponentA v1.0.0
+   * MOD - A1 [PROJ-1001] Done
+   * FIX - A2 [PROJ-1002] Done
+* ComponentB v2.0.0
+   * MOD - B1 [PROJ-2001] Done
+   * MOD - B2 [PROJ-2002] In Progress
+   * FIX - B3 [PROJ-2003] Documentation
+`
+    const { changes } = parseScope(raw)
+    expect(changes).toHaveLength(5)
+    expect(changes.map(c => c.nr)).toEqual([1, 2, 3, 4, 5])
+    expect(changes.map(c => c.component)).toEqual([
+      'ComponentA', 'ComponentA', 'ComponentB', 'ComponentB', 'ComponentB'
+    ])
+  })
 })
