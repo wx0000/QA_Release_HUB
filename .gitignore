@@ -6,3 +6,4 @@ dist/
 *.tsbuildinfo
 *.backup-*
 NEW/
+PDFS/
