@@ -39,14 +39,22 @@ src/
 
 | Version | Feature |
 |---------|---------|
-| v0.1.0 | Foundation & Layout |
-| v0.2.0 | Parser + Tables |
-| v0.3.0 | Rich Text + PDF |
-| v0.3.4 | Patch — TipTap toolbar, auto-save testResults, image warning — **current** |
-| v0.4.0 | Deployment Schedule |
-| v0.5.0 | Terminal Regression |
-| v0.6.0 | Terminal Update Monitor |
-| v0.7.0 | Persistence + UX Polish |
-| v0.8.0 | AIO TC-GEN |
+| v0.1.0  | Foundation & Layout |
+| v0.2.0  | Parser + Tables |
+| v0.3.0  | Rich Text + PDF |
+| v0.3.4  | Patch — TipTap toolbar, auto-save testResults, image warning |
+| v0.3.5  | Patch — repo hygiene + tag policy — **current** |
+| v0.4.0  | Tab 6 — AIO TC-GEN (LLM-based) |
+| v0.5.0  | Tab 3a — Android Terminal Regression |
+| v0.6.0  | Tab 3b — Embedded Terminal Regression |
+| v0.7.0  | Tab 4 — Terminal Update Monitor |
+| v0.8.0  | Tab 2 — Deployment Schedule (finish) |
+| v0.9.0  | Diagnostic Pack (Log + Parameter parsers) |
+| v0.10.0 | Tab 9 — QRCode Generator |
+| v0.11.0 | Settings polish (gear menu) |
+| v0.12.0 | Tab 10 — SQL Query |
+| v0.13.0 | Tab 11 — Card Management |
+| v0.14.0 | Tab 12 — Partner Management |
+| v1.0.0  | Hardening + .exe installer |
 
 See [PROJECT.md](./PROJECT.md) for full architecture documentation and roadmap.
