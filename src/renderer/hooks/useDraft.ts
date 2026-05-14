@@ -9,6 +9,7 @@ interface DraftData {
   meta?: ReportMeta
   rawScope?: string
   changes?: ParsedChange[]
+  testResults?: Record<number, string>
   savedAt?: string
 }
 
@@ -16,11 +17,19 @@ export function useDraft() {
   const setMeta = useReportStore(state => state.setMeta)
   const setRawScope = useReportStore(state => state.setRawScope)
   const setChanges = useReportStore(state => state.setChanges)
+  const setTestResults = useReportStore(state => state.setTestResults)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const saveDraft = useCallback(() => {
-    const { meta, rawScope, changes, checklist } = useReportStore.getState()
-    const draft = { meta, rawScope, changes, checklist, savedAt: new Date().toISOString() }
+    const { meta, rawScope, changes, checklist, testResults } = useReportStore.getState()
+    const draft = {
+      meta,
+      rawScope,
+      changes,
+      checklist,
+      testResults,
+      savedAt: new Date().toISOString(),
+    }
     window.electronAPI?.store.set(DRAFT_KEY, draft).catch(() => {})
   }, [])
 
@@ -40,8 +49,9 @@ export function useDraft() {
     if (draft.meta) setMeta(draft.meta)
     if (draft.rawScope) setRawScope(draft.rawScope)
     if (draft.changes) setChanges(draft.changes)
+    if (draft.testResults) setTestResults(draft.testResults)
     return true
-  }, [setMeta, setRawScope, setChanges])
+  }, [setMeta, setRawScope, setChanges, setTestResults])
 
   const clearDraft = useCallback(async (): Promise<void> => {
     await window.electronAPI?.store.set(DRAFT_KEY, null).catch(() => {})

@@ -15,6 +15,7 @@ interface ReportStore {
   updateChange: (nr: number, patch: Partial<ParsedChange>) => void
   updateChecklist: (nr: number, patch: Partial<ChecklistItem>) => void
   setTestResult: (nr: number, content: string) => void
+  setTestResults: (testResults: Record<number, string>) => void
   setVendorWarning: (show: boolean) => void
   resetReport: () => void
 }
@@ -71,6 +72,8 @@ export const useReportStore = create<ReportStore>((set) => ({
 
   setTestResult: (nr, content) =>
     set((s) => ({ testResults: { ...s.testResults, [nr]: content } })),
+
+  setTestResults: (testResults) => set({ testResults }),
 
   setVendorWarning: (show) => set({ vendorWarning: show }),
 
