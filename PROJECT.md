@@ -829,6 +829,26 @@ A reusable Zustand store / pattern (`secureCredentialStore`) holds all sensitive
 Reason: generalizes ADR-009 across the project, prevents the temptation to persist tokens per module, single audit surface for security review.
 Trade-off: every API-backed module requires re-entry of secrets per session — acceptable, matches the project's security posture.
 
+### ADR-018: PDF Section 2 — per-component blocks instead of test cases table
+Replaced the 8-column "Test cases" table with a per-component block layout. Each MOD/FIX
+renders as a standalone unit starting on its own page (pageBreak: 'before'), with full-width
+inline images.
+Reason: image readability — screenshots inside narrow table cells (~120pt) were unreadable
+at default zoom. Block layout uses full A4-landscape width (782pt) so a typical 800x600
+screenshot is readable without zoom.
+Trade-off: more pages per report, but linear navigation via TOC table at the top of Section 2.
+
+### ADR-019: TOC anchor on Section 2 title; pageReference cells without linkToDestination
+TOC table is hyperlinked to per-component blocks via `linkToDestination` on Nr/Component/
+Version/Result cells; the Page column uses `pageReference` (auto-resolved page number)
+WITHOUT `linkToDestination` to avoid pdfmake conflict with its built-in auto-link.
+Anchor for the "Back to TOC" footer link lives on the Section 2 title (substantial text
+node) — pdfmake registers anchors most reliably on text nodes; table-wrapper IDs and
+tiny invisible markers get lost during layout decomposition.
+Trade-off: footer back-link visibility computed by simple page-range (currentPage > 1 &&
+currentPage < pageCount) instead of dynamic section tracking, which pdfmake's
+pageBreakBefore callback handles inconsistently for non-table nodes.
+
 ---
 
 ## Acceptance Criteria per Version

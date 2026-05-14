@@ -60,6 +60,33 @@ docs(project): expand roadmap, split regression tab, extract hardware to separat
 
 ---
 
+## [0.3.3] — 2026-05-14
+
+### Refactored
+- **PDF Section 2 — per-component blocks with inline images** (replaces the 8-column "Test cases" table). Each MOD/FIX renders as a standalone unit starting on a new page with full-width inline images. Compact TOC table with internal hyperlinks (Nr/Component/Version/Result/Page) lands immediately under Section 1 on page 1.
+- Footer back-link "Back to TOC" on every Section 2 page (pages 2..N-1, simple page-range rule).
+- Anchor markers as tiny text nodes — pdfmake registers them most reliably; table-wrapper IDs get lost during layout decomposition.
+
+### Added
+- 9 new pdfGenerator modules: `constants`, `blockBuilder`, `tocBuilder`, `footerBuilder`, `tiptapToPdfContent`, `imageHelper`, `resolveImageDimensions` — each with unit tests.
+- Full TipTap StarterKit support in PDF: headings (H1–H6), bulletList, orderedList, blockquote, codeBlock, horizontalRule, image. Inline marks: bold, italic, strike, underline, code (gray background).
+- Empty-content placeholder: "No test content provided" rendered when `currentResult` is empty / whitespace-only.
+- PDF document metadata: title, author, creator, subject set on docDefinition.
+- `compress: false` in pdfmake docDef for crisp zoom-in image readability.
+- Defensive tests in `scopeParser.test.ts`: 3 MOD/FIX under one component → 3 separate ParsedChange entries with sequential global `nr`.
+
+### Fixed
+- Conditional image sizing for A4 landscape: natural size when both width ≤ 782pt AND height ≤ 480pt; otherwise scale-down via `fit: [782, 480]`. Prevents images overflowing onto the footer.
+- TOC page-number cells: removed conflicting `linkToDestination` (pdfmake auto-hyperlinks `pageReference` text).
+- `tsconfig.web.json`: removed deprecated `baseUrl`, made `paths` relative (TS 7.0 deprecation).
+- Removed Unicode glyphs (`✓`, `↑`, environment-state symbols) from labels — pdfmake's bundled Roboto VFS does not include them; they rendered as "tofu" boxes.
+
+### New ADRs
+- **ADR-018** — PDF Section 2 as per-component blocks (replaces test cases table).
+- **ADR-019** — TOC anchor placement and pageReference vs. linkToDestination conflict avoidance.
+
+---
+
 ## [0.3.1] — 2026-05-10
 
 ### Changed
