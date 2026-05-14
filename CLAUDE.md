@@ -657,3 +657,71 @@ v0.4.0 — Tab 6 AIO TC-GEN (LLM-based test case generator). Open architectural 
 
 _Last updated: 2026-05-14_
 _Project: QA Release HUB_
+
+---
+
+## Definition of Done — Release Checklist
+
+Każda sesja kończąca wersję (patch lub minor) musi przejść poniższą listę. Plan Mode w Claude Code MA traktować tę listę jako część każdego planu release'owego — bez tego plan jest niekompletny.
+
+### Patch release (v0.x.Y → v0.x.Y+1)
+
+Drobne zmiany: bugfix, doszlifowanie UI, dopisanie testów, backfill docs.
+
+1. **Quality gates** — wszystkie muszą przejść:
+   - `npm run type-check` → 0 errors
+   - `npm run lint` → 0 errors
+   - `npm run test` → green (wszystkie testy pass)
+
+2. **Manual smoke test** — Claude wypisuje listę kroków do ręcznego sprawdzenia w `npm run dev:browser`; użytkownik wykonuje i potwierdza.
+
+3. **Dokumentacja:**
+   - `CHANGELOG.md` — nowy wpis `[0.x.Y+1] — YYYY-MM-DD` z sekcjami Added / Changed / Fixed (tylko te które wystąpiły)
+   - `CLAUDE.md` — wpis w Session Log + update Current Status (Version in dev)
+   - `PROJECT.md` — jednolinijkowy Changelog headline dla nowej wersji; roadmapa zwykle bez zmian dla patcha
+   - `README.md` — sprawdź czy wymaga update (zwykle NIE dla patcha); jeśli pominięte świadomie — wspomnij w podsumowaniu sesji
+
+4. **Git workflow:**
+   - Każde logiczne zadanie = osobny commit z conventional message (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
+   - `npm version patch` na końcu (tworzy commit `chore: x.x.x` + tag git `vx.x.x` automatycznie)
+   - `git push --follow-tags` żeby wypchnąć tag na remote
+
+5. **Cleanup:**
+   - Stary plan z `.claude/plans/` — przenieść do `.claude/plans/archive/` (utwórz folder jeśli nie istnieje). NIE usuwać.
+   - Zamknąć/wyczyścić TODO w `CLAUDE.md` które zostały zrealizowane
+
+### Minor release (v0.X.0 → v0.X+1.0)
+
+Nowa feature, nowa zakładka, większy moduł, breaking change w API wewnętrznym.
+
+Wszystko z patcha PLUS:
+
+6. **Architektura:**
+   - Jeśli była decyzja architektoniczna — nowy wpis ADR w `PROJECT.md` (tabela "Decyzje architektoniczne")
+   - Update sekcji "Struktura projektu" w `PROJECT.md` jeśli doszły nowe foldery/pliki kluczowe
+   - Update sekcji "Stack" jeśli doszła/zmieniła się biblioteka (z osobnym potwierdzeniem TAK/NIE od użytkownika)
+
+7. **Roadmapa:**
+   - W `PROJECT.md` tabela "Roadmapa wersji" — zaktualizować status ukończonej wersji (TODO → DONE) i ewentualnie scope następnej
+   - `CLAUDE.md` Current Status — przesunąć focus na następną wersję
+
+8. **README.md** — TAK, sprawdź dokładnie:
+   - Screenshots (jeśli UI się zmieniło)
+   - Sekcja "Features" / "Roadmap"
+   - Instrukcja instalacji jeśli doszły nowe wymagania
+
+9. **Wersjonowanie:**
+   - `npm version minor` zamiast `npm version patch`
+   - Tag git `vx.X.0` powstaje automatycznie
+   - `git push --follow-tags`
+
+10. **Dla v1.0.0 specjalnie:** dodatkowa checklist — pełen manual test wszystkich zakładek, screenshots do README, GitHub release notes z highlightami, ewentualnie release w electron-builder do `.exe`.
+
+### Czego NIE robić przy release
+
+- Nie commituj jeśli `type-check` lub `lint` failują — napraw najpierw
+- Nie pomijaj `CHANGELOG.md` "bo to mała zmiana" — każdy publiczny commit ma swój wpis
+- Nie używaj `git tag` ręcznie — `npm version` robi to atomowo z commitem
+- Nie wypychaj bez `--follow-tags` — tag zostanie lokalnie
+- Nie zamykaj sesji bez update Session Log w `CLAUDE.md`
+- Nie usuwaj `.claude/plans/` — archiwizować do `.claude/plans/archive/`
