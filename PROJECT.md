@@ -686,6 +686,9 @@ Renderer pattern: `window.electronAPI.<domain>.<method>()` only — no raw `ipcR
 | v0.2.0 | scopeParser + tests, ScopeInput, ChangesTable, TestCasesTable | A | **DONE ✅** |
 | v0.3.0 | TipTap rich text, PDF report pipeline, auto-save | A | **DONE ✅** |
 | v0.3.1 | Vendor field required, PDF Section 2 plain-text fix | A | **DONE ✅** |
+| v0.3.2 | Draft restore dialog, inline base64 images in PDF Section 2 cells | A | **DONE ✅** |
+| v0.3.3 | PDF Section 2 refactor — per-component blocks, inline images, TOC + footer back-link | A | **DONE ✅** |
+| v0.3.4 | TipTap toolbar (H1/H2/lists/quote/code), auto-save persists `testResults`, low-resolution image warning, [0.3.2] backfill | A | **DONE ✅** |
 | v0.4.0 | **Tab 6 — AIO TC-GEN (LLM-based)** ⭐ CV killer | C | TODO |
 | v0.5.0 | Tab 3a — Android Terminal Regression | B | TODO |
 | v0.6.0 | Tab 3b — Embedded Terminal Regression | B | TODO |
@@ -882,6 +885,28 @@ pageBreakBefore callback handles inconsistently for non-table nodes.
 ### v0.3.1 — DONE ✅
 - [x] Vendor input required before Parse — inline error if empty
 - [x] PDF Section 2 reverts to plain text (TipTap rich-text layout issues in pdfmake)
+
+### v0.3.2 — DONE ✅
+- [x] Draft restore dialog (`DraftRestoreDialog.tsx`) shown on app start when a meaningful draft exists
+- [x] `useDraft` gains `peekDraft` + `clearDraft`; autosave global (not per-tab)
+- [x] PDF Section 2 "Current result" cells render TipTap content as `{ stack: [...] }` with inline base64 images
+
+### v0.3.3 — DONE ✅
+- [x] PDF Section 2 redesigned as per-component blocks (each MOD/FIX starts on a new page, full-width images)
+- [x] Section 2 TOC table on page 1 with internal hyperlinks (Nr / Component / Version / Result / Page)
+- [x] "Back to TOC" footer link on middle pages of Section 2
+- [x] Full TipTap StarterKit support in PDF: H1–H6, bulletList, orderedList, blockquote, codeBlock, horizontalRule, image; inline marks (bold/italic/strike/underline/code)
+- [x] Empty content placeholder "No test content provided"
+- [x] `npm run test` → green (137/137)
+
+### v0.3.4 — DONE ✅
+- [x] TipTap toolbar: H1, H2, BulletList, OrderedList, Blockquote, CodeBlock buttons with active state
+- [x] Editor preview renders the new node types (Tailwind variant classes in `EDITOR_CLASS`)
+- [x] Auto-save persists `testResults` (`DraftData.testResults?` field + `setTestResults(record)` bulk-replace action); content restored after reload via Draft detected dialog
+- [x] Low-resolution image warning panel after paste/drop/file-pick when both dimensions fall below `IMAGE_MAX_WIDTH_PT * 0.25` AND `IMAGE_MAX_HEIGHT_PT * 0.5`; dismissable; never blocks insertion
+- [x] `CHANGELOG.md` `[0.3.2]` entry backfilled
+- [x] Quality gates: `type-check` + `lint` + `vitest run` (137/137) all green
+- [x] Released as patch: `npm version patch` flow walked through first time; gotchas documented in CLAUDE.md Definition of Done (package.json version sync, lightweight vs annotated tags)
 
 ### v0.4.0 — DONE when (Tab 6 — AIO TC-GEN):
 - [ ] LLM provider selection (Claude / OpenAI) persisted in `config.json`

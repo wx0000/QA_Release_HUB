@@ -35,6 +35,8 @@
 - **Surfaced TODOs (post-v0.3.4):**
   1. `package.json` `"test": "vitest"` defaults to watch mode — change to `vitest run` and add separate `test:watch`. Surfaced during v0.3.4 quality gates when full `npm run test` hung.
   2. `README.md` Versioning table is out of sync with `PROJECT.md` roadmap (Tab order, version-to-feature mapping). Only "current" marker bumped in v0.3.4 — full re-sync deferred.
+  3. `.gitignore` should cover `PDFS/` (and similar PDF output folders) — they accumulate during manual smoke tests and currently show up as untracked.
+  4. Tag policy: project tags are **lightweight** (`v0.1.0`, `v0.3.4`). `git push --follow-tags` only pushes **annotated** tags, so each release currently needs an explicit `git push origin vX.Y.Z` step. Decide: stay lightweight + always push explicitly, or switch to annotated (`git tag -a vX.Y.Z -m "..."`).
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
 ---
@@ -396,6 +398,11 @@ These took time to figure out — don't re-solve them:
 - Plan mode used twice: initial plan + one re-entry during execution to refresh status. The "Status (live)" block at top of plan file proved useful for resuming after re-entry — recommend keeping that pattern.
 - 4 incremental feature commits + 1 docs commit + `npm version patch` (auto chore commit + tag) is the patch flow; clean separation works well.
 
+**Post-release gotchas (release checklist amended afterwards):**
+- **`npm version patch` produced wrong tag.** `package.json` `"version"` was stuck at `"0.3.0"` (never bumped during v0.3.1 / v0.3.2 / v0.3.3 sessions — those did not run any release checklist). The patch bump went `0.3.0` → `0.3.1` and created a `v0.3.1` tag, conflicting with `CHANGELOG.md` which said `[0.3.4]`. Fix (with user confirmation): `git tag -d v0.3.1`, `git reset --hard HEAD~1`, manual edit of `package.json` + `package-lock.json` to `0.3.4`, `git commit -m "0.3.4"`, `git tag v0.3.4`. Lesson: verify `package.json` version matches *last shipped* version **before** running `npm version patch`. Amended Git workflow step 4 in Definition of Done.
+- **`git push --follow-tags` did not push the tag.** `--follow-tags` only pushes **annotated** tags. `npm version patch` (and the manual `git tag v0.3.4` reproducing it) creates **lightweight** tags — `git cat-file -t v0.3.4` returned `commit` not `tag`. Branch was pushed, tag stayed local. Fix: explicit `git push origin v0.3.4`. The existing `v0.1.0` tag is also lightweight, so the project is consistently lightweight — keeping that, but always pushing tags explicitly. Amended Git workflow step 4 in Definition of Done.
+- New surfaced TODOs: `.gitignore` for `PDFS/` (smoke-test artefacts) and the annotated-vs-lightweight tag decision recorded above.
+
 ---
 
 ### 2026-05-13/14 — v0.3.3: PDF Section 2 refactor (per-component blocks + inline images)
@@ -723,8 +730,9 @@ Drobne zmiany: bugfix, doszlifowanie UI, dopisanie testów, backfill docs.
 
 4. **Git workflow:**
    - Każde logiczne zadanie = osobny commit z conventional message (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
-   - `npm version patch` na końcu (tworzy commit `chore: x.x.x` + tag git `vx.x.x` automatycznie)
-   - `git push --follow-tags` żeby wypchnąć tag na remote
+   - **PRZED `npm version patch`** zweryfikuj że `package.json` `"version"` odpowiada **poprzedniej wypuszczonej wersji** (`grep '"version"' package.json` vs ostatnia sekcja w `CHANGELOG.md`). Jeśli mismatch — fix manualnie, inaczej patch bump utworzy złe tag (v0.3.4 release ujawnił że package.json był stuck na 0.3.0).
+   - `npm version patch` na końcu (tworzy commit `x.x.x` + tag git `vx.x.x` automatycznie — domyślnie **lightweight**)
+   - `git push --follow-tags` żeby wypchnąć tag — **ale tylko dla annotated tagów**. Project używa lightweight tagów, więc po `push --follow-tags` zrób też `git push origin vx.x.x` osobno. (Alternatywa: użyj `git tag -a vx.x.x -m "release"` zamiast zwykłego `git tag` — wtedy `--follow-tags` zadziała.)
 
 5. **Cleanup:**
    - Stary plan z `.claude/plans/` — przenieść do `.claude/plans/archive/` (utwórz folder jeśli nie istnieje). NIE usuwać.
