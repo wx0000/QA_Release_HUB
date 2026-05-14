@@ -687,6 +687,7 @@ Renderer pattern: `window.electronAPI.<domain>.<method>()` only — no raw `ipcR
 | v0.3.2 | Draft restore dialog, inline base64 images in PDF Section 2 cells | A | **DONE ✅** |
 | v0.3.3 | PDF Section 2 refactor — per-component blocks, inline images, TOC + footer back-link | A | **DONE ✅** |
 | v0.3.4 | TipTap toolbar (H1/H2/lists/quote/code), auto-save persists `testResults`, low-resolution image warning, [0.3.2] backfill | A | **DONE ✅** |
+| v0.3.5 | Repo hygiene + tag policy: vitest single-run, README Versioning re-sync, `.gitignore` PDFS/, annotated tag policy, stale [Unreleased] removed | — | **DONE ✅** |
 | v0.4.0 | **Tab 6 — AIO TC-GEN (LLM-based)** | C | TODO |
 | v0.5.0 | Tab 3a — Android Terminal Regression | B | TODO |
 | v0.6.0 | Tab 3b — Embedded Terminal Regression | B | TODO |
@@ -738,6 +739,7 @@ Cross-app coordination (if ever needed): local IPC bridge or deep links — not 
 
 > See `CHANGELOG.md` for the full history. Headlines only here.
 
+- **v0.3.5** (2026-05-15) — Repo hygiene + tag policy: vitest single-run + `test:watch` split, README Versioning re-sync with roadmap, `.gitignore` excludes `PDFS/`, tag policy switched to annotated for v0.3.5+, stale `[Unreleased]` CHANGELOG section removed
 - **v0.3.4** (2026-05-14) — TODOs cleanup: TipTap toolbar (H1/H2/lists/quote/code), auto-save persists `testResults`, low-resolution image warning, [0.3.2] backfill
 - **v0.3.3** (2026-05-14) — PDF Section 2 refactor: per-component blocks with inline images, TOC + footer back-link
 - **v0.3.2** (2026-05-10) — Draft restore dialog on app start, base64 images inline in PDF Section 2 cells
@@ -906,6 +908,15 @@ pageBreakBefore callback handles inconsistently for non-table nodes.
 - [x] Quality gates: `type-check` + `lint` + `vitest run` (137/137) all green
 - [x] Released as patch: `npm version patch` flow walked through first time; gotchas documented in CLAUDE.md Definition of Done (package.json version sync, lightweight vs annotated tags)
 
+### v0.3.5 — DONE ✅
+- [x] `package.json` test script switched to `vitest run`; new `test:watch` script for explicit watch mode
+- [x] `README.md` Versioning table fully re-synced with `PROJECT.md` roadmap (17 rows, v0.1 → v1.0)
+- [x] `.gitignore` excludes `PDFS/` smoke-test artefacts
+- [x] Tag policy decision: annotated tags from v0.3.5+ — `CLAUDE.md` Definition of Done § 4 (patch) and § 9 (minor) updated with retag-after-`npm version` dance; existing `v0.1.0` and `v0.3.4` stay lightweight
+- [x] `CHANGELOG.md` `[Unreleased]` section from 2026-05-12 (roadmap-expansion docs) removed — content lives canonically in PROJECT.md ADR-014..017
+- [x] Quality gates: `type-check` + `lint` + `vitest run` all green
+- [x] Released as patch with annotated tag `v0.3.5` (first walk-through of new tag policy)
+
 ### v0.4.0 — DONE when (Tab 6 — AIO TC-GEN):
 - [ ] LLM provider selection (Claude / OpenAI) persisted in `config.json`
 - [ ] API key handling decided and implemented (RAM vs. encrypted file — see ADR placeholder)
@@ -997,5 +1008,5 @@ pageBreakBefore callback handles inconsistently for non-table nodes.
 
 ---
 
-*Last updated: 2026-05-14 (v0.3.4 patch: TipTap toolbar, auto-save testResults, image warning, [0.3.2] backfill)*
+*Last updated: 2026-05-15 (v0.3.5 patch: repo hygiene + tag policy → annotated)*
 *Project: QA Release HUB*

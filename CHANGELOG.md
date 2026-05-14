@@ -4,59 +4,31 @@ All notable changes to QA Release HUB follow [Semantic Versioning](https://semve
 
 ---
 
-## [Unreleased] — 2026-05-12 — Roadmap expansion (strategic / docs only)
+## [0.3.5] — 2026-05-15
 
-### Strategic decisions
-- **Roadmap expanded** from v0.1 – v0.8 to v0.1 – v1.0 with 11 functional tabs across 5 categories (Release Management, Terminal Testing, TC Generator, Diagnostic Tools, Backend Integrations).
-- **Tab 6 — AIO TC-GEN promoted to v0.4** (LLM-based test case generator). Previously slotted at v0.8+ as "details TBD".
-- **Tab 3 split into Tab 3a (Android Terminal Regression) and Tab 3b (Embedded Terminal Regression).** Original single-tab toggle approach abandoned — two suites are functionally disjoint.
-- **Hardware modules extracted to a separate companion app** `Terminal Hardware Toolkit`: Printer App, Cashier App, Terminal Flasher, Card Reader. They will NOT live in QA Release HUB. Reason: native dependencies (USB/serial/vendor drivers), different usage cadence, cleaner CV story.
-- **Tab 5 (Settings) demoted from sidebar tab to gear menu in TitleBar.** Settings are not a daily workflow — they belong behind an icon.
-- **6 new tabs added to the roadmap:**
-  - Tab 7 — System Log Parser (v0.9, local)
-  - Tab 8 — Parameter Parser (v0.9, local)
-  - Tab 9 — QRCode Generator (v0.10, API-backed, ⚠️ reverse-eng. required)
-  - Tab 10 — SQL Query (v0.12, MSSQL)
-  - Tab 11 — Card Management (v0.13, ⚠️ reverse-eng. required)
-  - Tab 12 — Partner Management (v0.14, ⚠️ reverse-eng. required)
-- **Tab 2 (Deployment Schedule) demoted from v0.4 to v0.8** — parser + ScheduleBuilder already built in v0.4.0 session A, remaining Loop output / clipboard / clear deferred behind higher-priority modules.
+Patch — repo hygiene + tag policy decision. Closes all surfaced TODOs from v0.3.4 before v0.4.0 (Tab 6 AIO TC-GEN) starts. No source-code changes — pure config, docs, and process.
 
-### New ADRs
-- **ADR-014** — Split Tab 3 into 3a (Android Terminal) and 3b (Embedded Terminal): two disjoint suites, independent state, independent JSON data.
-- **ADR-015** — Hardware modules extracted to separate companion app `Terminal Hardware Toolkit`: native dependency isolation, different usage cadence, cleaner portfolio story.
-- **ADR-016** — Settings as gear icon in TitleBar, not a dedicated tab: frees sidebar slot, follows standard desktop UX.
-- **ADR-017** — Generic `secureCredentialStore` for all API-backed modules: generalizes ADR-009 across Tabs 4, 9, 10, 11, 12 (and Tab 6 if RAM-only API key mode is chosen). Bearer tokens, API keys, and DB passwords always RAM-only; connection profiles (URLs, logins) in `config.json`.
+### Changed
+- **`package.json` test scripts** — `"test": "vitest"` → `"test": "vitest run"` (single-run; the watch-mode default was hanging the quality-gate script). Added `"test:watch": "vitest"` for explicit watch mode.
+- **`README.md` Versioning table** — full re-sync with `PROJECT.md` roadmap. Previously only the "current" marker was bumped; v0.4–v0.8 still listed stale feature mapping and v0.9–v1.0 were missing.
+- **Tag policy: annotated from v0.3.5+.** `CLAUDE.md` Definition of Done § 4 (patch) and § 9 (minor) updated to require `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m "release: vX.Y.Z"` immediately after `npm version`, so `git push --follow-tags` actually pushes the tag. Existing `v0.1.0` and `v0.3.4` stay lightweight — no retroactive rewrite.
+- **`CHANGELOG.md`** — removed the stale `[Unreleased] — 2026-05-12` section (Roadmap expansion / strategic docs). The decisions live canonically in `PROJECT.md` ADR-014..017 + § Changelog headlines, so the duplicate was only noise.
 
-### Renaming / generic naming pass
-- **TERMINAL-A / TERMINAL-B** in roadmap and data file naming → **Android Terminal / Embedded Terminal**.
-- Removed internal company-specific API names from documentation. Tabs 11 and 12 described in functional terms only.
-- Tab numbering remapped: Tab 4 is now **Terminal Update Monitor** (was Tab 5); Tab 5 slot freed (settings → gear menu); Tab 6 is **AIO TC-GEN** (was Tab 4).
-
-### Documentation
-- **`PROJECT.md` fully rewritten** to reflect the new roadmap, ADRs, folder structure, and conventions. English throughout (some sections previously in Polish merged in).
-- **`CHANGELOG.md`** — this entry.
+### Added
+- **`.gitignore`** — `PDFS/` excluded (manual smoke-test artefacts; previously showed up as untracked after every PDF generation run).
 
 ### Files changed
-- `PROJECT.md` (full rewrite — strategic + structural updates)
-- `CHANGELOG.md` (this entry)
+- `package.json` (test scripts)
+- `.gitignore` (PDFS/)
+- `README.md` (Versioning table)
+- `CLAUDE.md` (Definition of Done § 4, § 9; Current Status; Session Log)
+- `PROJECT.md` (Changelog headline; Last updated)
+- `CHANGELOG.md` ([Unreleased] removed; this entry added)
 
 ### Manual test
-- n/a — documentation-only change. No code, no behavior change. Existing v0.1–v0.3.1 features unaffected.
-
-### Commit message
-```
-docs(project): expand roadmap, split regression tab, extract hardware to separate app
-
-- Add 6 new tabs (Tabs 7–12) across Diagnostic Tools and Backend Integrations
-- Promote AIO TC-GEN to v0.4 as CV killer feature (was v0.8+ TBD)
-- Split Tab 3 into 3a (Android Terminal) and 3b (Embedded Terminal)
-- Demote Tab 2 (Schedule) to v0.8 — finish remaining Loop output later
-- Move Settings from sidebar tab to gear menu in TitleBar
-- Extract Hardware modules (Printer/Cashier/Flasher/Card Reader) to separate app
-- Add ADR-014 (Tab 3 split), ADR-015 (Hardware extraction), ADR-016 (gear menu), ADR-017 (secureCredentialStore)
-- Generic naming throughout: Android/Embedded Terminal, no internal API names
-- PROJECT.md fully rewritten in English to match actual repo state
-```
+- `npm run test` exits cleanly (single-run, no watch).
+- `npm run test:watch` enters watch mode (Ctrl+C to leave).
+- `git status` after release shows clean tree; `git cat-file -t v0.3.5` returns `tag` (annotated).
 
 ---
 
