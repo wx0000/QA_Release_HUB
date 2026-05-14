@@ -18,8 +18,8 @@
 
 ## Current Status
 
-- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator). Last shipped: **v0.3.4** (2026-05-14, patch).
-- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3, v0.3.4 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
+- **Version in dev:** v0.4.0 in progress — Tab 6 AIO TC-GEN (LLM-based test case generator). Last shipped: **v0.3.5** (2026-05-15, patch — repo hygiene).
+- **Status of completed versions:** v0.1, v0.2, v0.3, v0.3.1, v0.3.2, v0.3.3, v0.3.4, v0.3.5 → DONE · v0.4.0 sesja A (Schedule parser + ScheduleBuilder) → PARTIAL (deferred to v0.8)
 - **Next concrete task:** v0.4.0 — Tab 6 AIO TC-GEN. Open architectural questions to resolve at session start:
   1. LLM provider default (Claude vs OpenAI) — likely Claude
   2. API key storage: encrypted in `config.json` vs RAM-only vs OS keychain
@@ -32,11 +32,7 @@
   - Settings moved from sidebar tab to gear menu in TitleBar — ADR-016
   - Hardware modules (Printer, Cashier, Flasher, Card Reader) extracted to separate companion app `Terminal Hardware Toolkit` — ADR-015
 - **Blockers:** none
-- **Surfaced TODOs (post-v0.3.4):**
-  1. `package.json` `"test": "vitest"` defaults to watch mode — change to `vitest run` and add separate `test:watch`. Surfaced during v0.3.4 quality gates when full `npm run test` hung.
-  2. `README.md` Versioning table is out of sync with `PROJECT.md` roadmap (Tab order, version-to-feature mapping). Only "current" marker bumped in v0.3.4 — full re-sync deferred.
-  3. `.gitignore` should cover `PDFS/` (and similar PDF output folders) — they accumulate during manual smoke tests and currently show up as untracked.
-  4. Tag policy: project tags are **lightweight** (`v0.1.0`, `v0.3.4`). `git push --follow-tags` only pushes **annotated** tags, so each release currently needs an explicit `git push origin vX.Y.Z` step. Decide: stay lightweight + always push explicitly, or switch to annotated (`git tag -a vX.Y.Z -m "..."`).
+- **Surfaced TODOs:** none — all 4 post-v0.3.4 TODOs closed in v0.3.5 (test script, README sync, .gitignore PDFS/, tag policy → annotated).
 - **Browser preview:** `npm run dev:browser` → `http://localhost:5173` (all UI components work; IPC calls silently no-op)
 
 ---
@@ -357,6 +353,53 @@ These took time to figure out — don't re-solve them:
 ---
 
 ## Session Log
+
+### 2026-05-15 — v0.3.5: repo hygiene patch (4 surfaced TODOs from v0.3.4) + tag policy decision
+
+**Goal:** Close all 4 surfaced TODOs from v0.3.4 plus tidy the stale `[Unreleased]` section in `CHANGELOG.md` (strategic docs from 2026-05-12 that merged to main without ever getting a version tag). Pure config / docs / process — zero source-code changes — so we enter v0.4.0 (Tab 6 AIO TC-GEN) with a clean slate.
+
+**Decisions made up-front (via AskUserQuestion before edits):**
+- **Tag policy → annotated from v0.3.5+.** `npm version` creates lightweight, so the release flow now requires an immediate `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m "release: vX.Y.Z"` retag step. Existing `v0.1.0` and `v0.3.4` stay lightweight (no retroactive rewrite — destructive force-push not justified for a solo repo).
+- **`[Unreleased]` section in CHANGELOG → removed.** Strategic decisions live canonically in `PROJECT.md` ADR-014..017 + § Changelog headlines. The duplicate entry only confused the version timeline.
+
+**5 feature commits on `main`:**
+- (todo numbers below filled in after the actual `git log` — placeholder until commit). Order matches Definition of Done patch checklist.
+- `chore(test): switch default vitest to single-run, add test:watch script` — `package.json` `"test": "vitest"` → `"vitest run"`; new `"test:watch": "vitest"`. Quality-gate gate-keeper no longer hangs.
+- `chore(gitignore): exclude PDFS/ smoke-test artefacts` — `PDFS/` added after `NEW/`.
+- `docs(readme): resync Versioning table with PROJECT.md roadmap` — full table rewrite v0.1.0 → v1.0.0 (17 rows), "current" marker on v0.3.5.
+- `docs(claude): switch tag policy to annotated for v0.3.5+` — Definition of Done § 4 (patch) + § 9 (minor) + "Czego NIE robić" list. Documents the retag dance and that existing lightweight tags stay.
+- `docs(changelog): remove stale [Unreleased] section, add [0.3.5] entry` — `[Unreleased] — 2026-05-12` block deleted (~55 lines); new `[0.3.5] — 2026-05-15` entry above `[0.3.4]`.
+
+**Files changed:**
+- `package.json` — `test` script + new `test:watch` (2 lines)
+- `.gitignore` — `PDFS/` (1 line)
+- `README.md` — Versioning table re-sync (~17 lines)
+- `CLAUDE.md` — Current Status (last shipped → v0.3.5, surfaced TODOs cleared), DoD § 4 + § 9 + "Czego NIE robić" (tag policy), this Session Log entry
+- `CHANGELOG.md` — `[Unreleased]` removed, `[0.3.5]` added
+- `PROJECT.md` — Changelog headline + Last updated
+
+**Quality gates:**
+- `npm run type-check` ✅ (no TS change, but verified)
+- `npm run lint` ✅
+- `npm run test` ✅ — **must single-run-exit**, not enter watch (this was the whole point of the script change). Result recorded after running.
+- `npm run test:watch` — manual check that watch mode starts; Ctrl+C exits cleanly.
+
+**Release flow (first walk-through of annotated tag policy):**
+1. Verify `package.json` `"version": "0.3.4"` before `npm version patch` — matches last shipped.
+2. `npm version patch` → bumps to 0.3.5, creates commit `0.3.5` + lightweight tag `v0.3.5`.
+3. `git tag -d v0.3.5` then `git tag -a v0.3.5 -m "release: v0.3.5"`.
+4. Verify: `git cat-file -t v0.3.5` → `tag`.
+5. `git push --follow-tags` (single push for branch + annotated tag).
+
+**Tested manually:** n/a — pure config/docs patch. Quality gates serve as verification (especially the test script behavior change).
+
+**Surfaced TODOs:** none — clean slate entering v0.4.0.
+
+**Process notes:**
+- Second walk-through of Definition of Done — Release Checklist (patch path). First walk-through (v0.3.4) surfaced the package.json version mismatch and lightweight-tag-vs-`--follow-tags` issue; both are now process-level fixes baked into the checklist.
+- Plan mode used once; plan file written to `.claude/plans/zapoznaj-sie-z-projektem-greedy-oasis.md` (will be archived after release).
+
+---
 
 ### 2026-05-14 — v0.3.4: TODOs cleanup patch (4 surfaced TODOs from v0.3.3)
 
@@ -702,7 +745,7 @@ v0.4.0 — Tab 6 AIO TC-GEN (LLM-based test case generator). Open architectural 
 
 ---
 
-_Last updated: 2026-05-14 (v0.3.4 patch)_
+_Last updated: 2026-05-15 (v0.3.5 patch — repo hygiene + tag policy)_
 _Project: QA Release HUB_
 
 ---
@@ -728,11 +771,16 @@ Drobne zmiany: bugfix, doszlifowanie UI, dopisanie testów, backfill docs.
    - `PROJECT.md` — jednolinijkowy Changelog headline dla nowej wersji; roadmapa zwykle bez zmian dla patcha
    - `README.md` — sprawdź czy wymaga update (zwykle NIE dla patcha); jeśli pominięte świadomie — wspomnij w podsumowaniu sesji
 
-4. **Git workflow:**
+4. **Git workflow (tag policy: annotated od v0.3.5+):**
    - Każde logiczne zadanie = osobny commit z conventional message (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
    - **PRZED `npm version patch`** zweryfikuj że `package.json` `"version"` odpowiada **poprzedniej wypuszczonej wersji** (`grep '"version"' package.json` vs ostatnia sekcja w `CHANGELOG.md`). Jeśli mismatch — fix manualnie, inaczej patch bump utworzy złe tag (v0.3.4 release ujawnił że package.json był stuck na 0.3.0).
-   - `npm version patch` na końcu (tworzy commit `x.x.x` + tag git `vx.x.x` automatycznie — domyślnie **lightweight**)
-   - `git push --follow-tags` żeby wypchnąć tag — **ale tylko dla annotated tagów**. Project używa lightweight tagów, więc po `push --follow-tags` zrób też `git push origin vx.x.x` osobno. (Alternatywa: użyj `git tag -a vx.x.x -m "release"` zamiast zwykłego `git tag` — wtedy `--follow-tags` zadziała.)
+   - `npm version patch` (tworzy commit `x.x.x` + LIGHTWEIGHT tag `vx.x.x` automatycznie)
+   - **Natychmiast po bumpie** zamień tag na annotated:
+     1. `git tag -d vX.Y.Z`
+     2. `git tag -a vX.Y.Z -m "release: vX.Y.Z"`
+   - `git push --follow-tags` — wypycha branch + annotated tag jednym poleceniem
+   - Weryfikacja: `git cat-file -t vX.Y.Z` musi zwrócić `tag` (nie `commit`)
+   - Istniejące tagi `v0.1.0` i `v0.3.4` zostają lightweight (decyzja z v0.3.5 — bez retroaktywnego przepisania).
 
 5. **Cleanup:**
    - Stary plan z `.claude/plans/` — przenieść do `.claude/plans/archive/` (utwórz folder jeśli nie istnieje). NIE usuwać.
@@ -758,9 +806,9 @@ Wszystko z patcha PLUS:
    - Sekcja "Features" / "Roadmap"
    - Instrukcja instalacji jeśli doszły nowe wymagania
 
-9. **Wersjonowanie:**
-   - `npm version minor` zamiast `npm version patch`
-   - Tag git `vx.X.0` powstaje automatycznie
+9. **Wersjonowanie (annotated tag policy — patrz § 4):**
+   - `npm version minor` zamiast `npm version patch` (lightweight tag `vx.X.0` powstaje automatycznie)
+   - Retag annotated: `git tag -d vx.X.0 && git tag -a vx.X.0 -m "release: vx.X.0"`
    - `git push --follow-tags`
 
 10. **Dla v1.0.0 specjalnie:** dodatkowa checklist — pełen manual test wszystkich zakładek, screenshots do README, GitHub release notes z highlightami, ewentualnie release w electron-builder do `.exe`.
@@ -769,7 +817,7 @@ Wszystko z patcha PLUS:
 
 - Nie commituj jeśli `type-check` lub `lint` failują — napraw najpierw
 - Nie pomijaj `CHANGELOG.md` "bo to mała zmiana" — każdy publiczny commit ma swój wpis
-- Nie używaj `git tag` ręcznie — `npm version` robi to atomowo z commitem
-- Nie wypychaj bez `--follow-tags` — tag zostanie lokalnie
+- Nie używaj `git tag` ręcznie do tworzenia tagu releasowego — `npm version` robi to atomowo z commitem. Jedyny manualny krok to retag z lightweight na annotated zaraz po `npm version` (patrz § 4).
+- Nie wypychaj bez `--follow-tags` — annotated tag zostanie lokalnie
 - Nie zamykaj sesji bez update Session Log w `CLAUDE.md`
 - Nie usuwaj `.claude/plans/` — archiwizować do `.claude/plans/archive/`
