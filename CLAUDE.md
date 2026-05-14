@@ -362,13 +362,14 @@ These took time to figure out — don't re-solve them:
 - **Tag policy → annotated from v0.3.5+.** `npm version` creates lightweight, so the release flow now requires an immediate `git tag -d vX.Y.Z && git tag -a vX.Y.Z -m "release: vX.Y.Z"` retag step. Existing `v0.1.0` and `v0.3.4` stay lightweight (no retroactive rewrite — destructive force-push not justified for a solo repo).
 - **`[Unreleased]` section in CHANGELOG → removed.** Strategic decisions live canonically in `PROJECT.md` ADR-014..017 + § Changelog headlines. The duplicate entry only confused the version timeline.
 
-**5 feature commits on `main`:**
-- (todo numbers below filled in after the actual `git log` — placeholder until commit). Order matches Definition of Done patch checklist.
-- `chore(test): switch default vitest to single-run, add test:watch script` — `package.json` `"test": "vitest"` → `"vitest run"`; new `"test:watch": "vitest"`. Quality-gate gate-keeper no longer hangs.
-- `chore(gitignore): exclude PDFS/ smoke-test artefacts` — `PDFS/` added after `NEW/`.
-- `docs(readme): resync Versioning table with PROJECT.md roadmap` — full table rewrite v0.1.0 → v1.0.0 (17 rows), "current" marker on v0.3.5.
-- `docs(claude): switch tag policy to annotated for v0.3.5+` — Definition of Done § 4 (patch) + § 9 (minor) + "Czego NIE robić" list. Documents the retag dance and that existing lightweight tags stay.
-- `docs(changelog): remove stale [Unreleased] section, add [0.3.5] entry` — `[Unreleased] — 2026-05-12` block deleted (~55 lines); new `[0.3.5] — 2026-05-15` entry above `[0.3.4]`.
+**5 feature commits on `main` (chronological):**
+- `daea15d` — `chore(test): switch default vitest to single-run, add test:watch script` — `package.json` `"test": "vitest"` → `"vitest run"`; new `"test:watch": "vitest"`. Quality-gate gate-keeper no longer hangs.
+- `4a94326` — `chore(gitignore): exclude PDFS/ smoke-test artefacts` — `PDFS/` added after `NEW/`.
+- `89103fd` — `docs(readme): resync Versioning table with PROJECT.md roadmap` — full table rewrite v0.1.0 → v1.0.0 (17 rows), "current" marker on v0.3.5.
+- `c76023e` — `docs(claude): switch tag policy to annotated, record v0.3.5` — Definition of Done § 4 (patch) + § 9 (minor) + "Czego NIE robić" list. Documents the retag dance and that existing lightweight tags stay. Also bumps Current Status (last shipped v0.3.5, surfaced TODOs cleared) and adds this Session Log entry.
+- `1620ccc` — `docs(release): record v0.3.5, drop stale [Unreleased] CHANGELOG section` — `[Unreleased] — 2026-05-12` block deleted (~55 lines); new `[0.3.5] — 2026-05-15` entry above `[0.3.4]`. Includes PROJECT.md release-tracking updates (roadmap row, Acceptance Criteria, Changelog headline, Last updated).
+
+Plus the auto-commit from `npm version patch`: `da0c150` (`0.3.5`) — bumps `package.json` + `package-lock.json` to 0.3.5 and creates the tag.
 
 **Files changed:**
 - `package.json` — `test` script + new `test:watch` (2 lines)
@@ -379,17 +380,17 @@ These took time to figure out — don't re-solve them:
 - `PROJECT.md` — Changelog headline + Last updated
 
 **Quality gates:**
-- `npm run type-check` ✅ (no TS change, but verified)
-- `npm run lint` ✅
-- `npm run test` ✅ — **must single-run-exit**, not enter watch (this was the whole point of the script change). Result recorded after running.
-- `npm run test:watch` — manual check that watch mode starts; Ctrl+C exits cleanly.
+- `npm run type-check` ✅ 0 errors
+- `npm run lint` ✅ 0 errors
+- `npm run test` ✅ 137/137 passed (8 files, ~400ms) — confirms single-run-exit (RUN mode), no watch hang. This was the whole point of the script change.
+- `npm run test:watch` ✅ verified DEV mode banner appears, processes 137 tests, then sits in watch (Ctrl+C exits).
 
 **Release flow (first walk-through of annotated tag policy):**
-1. Verify `package.json` `"version": "0.3.4"` before `npm version patch` — matches last shipped.
-2. `npm version patch` → bumps to 0.3.5, creates commit `0.3.5` + lightweight tag `v0.3.5`.
-3. `git tag -d v0.3.5` then `git tag -a v0.3.5 -m "release: v0.3.5"`.
-4. Verify: `git cat-file -t v0.3.5` → `tag`.
-5. `git push --follow-tags` (single push for branch + annotated tag).
+1. Verified `package.json` `"version": "0.3.4"` matches last shipped before `npm version patch`. ✅
+2. `npm version patch` → bumped to 0.3.5, created commit `da0c150` (`0.3.5`) + tag `v0.3.5`.
+3. Surprise: `git cat-file -t v0.3.5` **already returned `tag` immediately after `npm version patch`** — i.e. this npm (10.x) created an annotated tag by default, not lightweight as the v0.3.4 release notes claimed. `sign-git-tag` was `false`, no `tag.annotate` git config set — so the default behavior of `npm version` itself has changed between npm versions. The CLAUDE.md DoD § 4 wording still describes the retag dance, which is harmless (a no-op when the tag is already annotated, except it does change the tag's message and tagger timestamp).
+4. Ran the retag dance anyway for process consistency: `git tag -d v0.3.5 && git tag -a v0.3.5 -m "release: v0.3.5 — repo hygiene + tag policy switch to annotated"`. Confirmed `git cat-file -t v0.3.5` → `tag`. ✅
+5. `git push --follow-tags` deferred to user.
 
 **Tested manually:** n/a — pure config/docs patch. Quality gates serve as verification (especially the test script behavior change).
 
@@ -397,7 +398,8 @@ These took time to figure out — don't re-solve them:
 
 **Process notes:**
 - Second walk-through of Definition of Done — Release Checklist (patch path). First walk-through (v0.3.4) surfaced the package.json version mismatch and lightweight-tag-vs-`--follow-tags` issue; both are now process-level fixes baked into the checklist.
-- Plan mode used once; plan file written to `.claude/plans/zapoznaj-sie-z-projektem-greedy-oasis.md` (will be archived after release).
+- Plan file archived to `~/.claude/plans/archive/2026-05-15-v0.3.5-repo-hygiene-patch.md` (per DoD § 5 patch — never delete, archive instead).
+- **New finding (npm version → annotated by default):** the v0.3.4 session log claim that "`npm version patch` creates lightweight tags" was true in the npm version used at the time, but is no longer true in current npm. Consider folding this into the DoD § 4 wording in a future session — for now the retag dance is left in place as a no-op safety net.
 
 ---
 
